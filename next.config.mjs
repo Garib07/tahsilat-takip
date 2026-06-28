@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: "standalone"
-};
+const nextConfig = {};
+
+// Masaustu .exe paketi icin; Vercel deploy'unu bozmaz.
+if (process.env.ELECTRON_BUILD === "1") {
+  nextConfig.output = "standalone";
+}
 
 export default nextConfig;
