@@ -39,6 +39,8 @@ async function main() {
   }
 
   const payload = fs.readFileSync(sourcePath, "utf8");
+  const parsed = JSON.parse(payload);
+  const customerCount = Array.isArray(parsed.customers) ? parsed.customers.length : 0;
   const client = createClient({ url, authToken: token });
 
   await client.execute(`CREATE TABLE IF NOT EXISTS app_state (
@@ -52,13 +54,22 @@ async function main() {
     created_at TEXT NOT NULL
   )`);
 
+  const existing = await client.execute("SELECT data FROM app_state WHERE id = 1");
+  if (existing.rows[0]?.data) {
+    await client.execute({
+      sql: "INSERT INTO app_backups (data, created_at) VALUES (?, ?)",
+      args: [String(existing.rows[0].data), new Date().toISOString()]
+    });
+    console.log("Mevcut bulut verisi yedeklendi.");
+  }
+
   await client.execute({
     sql: `INSERT INTO app_state (id, data, updated_at) VALUES (1, ?, ?)
           ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
     args: [payload, new Date().toISOString()]
   });
 
-  console.log("Veri Turso'ya aktarıldı:", sourcePath);
+  console.log(`Veri Turso'ya aktarildi: ${customerCount} cari`);
 }
 
 main().catch((error) => {

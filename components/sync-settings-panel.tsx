@@ -195,7 +195,8 @@ export function SyncSettingsPanel() {
         </div>
 
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-          Senkron açıkken .exe ve telefon/web aynı veriyi görür. İlk açılışta yerel veriniz buluta yüklenir.
+          Senkron acilirken yerel ve bulut verisi karsilastirilir; daha dolu olan korunur. Bos .exe
+          kurulumu buluttaki veriyi silmez. Emin degilseniz once webden kontrol edin.
         </div>
       </form>
     </Card>

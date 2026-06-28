@@ -8,6 +8,53 @@ import {
 } from "@/lib/storage";
 import { getSyncConfigPath, isDesktopApp, readSyncConfig, writeSyncConfig } from "@/lib/sync-config";
 
+function scoreDatabasePayload(payload: string) {
+  try {
+    const data = JSON.parse(payload) as {
+      customers?: unknown[];
+      charges?: unknown[];
+      payments?: unknown[];
+    };
+    const customers = data.customers?.length ?? 0;
+    const charges = data.charges?.length ?? 0;
+    const payments = data.payments?.length ?? 0;
+    return customers * 1000 + charges * 10 + payments;
+  } catch {
+    return 0;
+  }
+}
+
+async function reconcileLocalAndCloud() {
+  const localPayload = await readLocalDatabaseOnly();
+  resetStorageClients();
+
+  let cloudPayload: string;
+  try {
+    cloudPayload = await readRawDatabase();
+  } catch {
+    await importRawDatabase(localPayload);
+    return;
+  }
+
+  const localScore = scoreDatabasePayload(localPayload);
+  const cloudScore = scoreDatabasePayload(cloudPayload);
+
+  if (cloudScore > localScore) {
+    await writeLocalDatabaseOnly(cloudPayload);
+    return;
+  }
+
+  if (localScore > cloudScore) {
+    resetStorageClients();
+    await importRawDatabase(localPayload);
+    return;
+  }
+
+  if (cloudScore > 0) {
+    await writeLocalDatabaseOnly(cloudPayload);
+  }
+}
+
 export async function getSyncStatus() {
   const config = await readSyncConfig();
 
@@ -46,7 +93,7 @@ export async function saveSyncSettings(input: {
       appUrl: input.appUrl.trim()
     });
     resetStorageClients();
-    await pushLocalToCloud();
+    await reconcileLocalAndCloud();
     return getSyncStatus();
   }
 
@@ -71,9 +118,17 @@ export async function saveSyncSettings(input: {
 }
 
 export async function pushLocalToCloud() {
-  const payload = await readLocalDatabaseOnly();
+  if (!isCloudStorageEnabled()) {
+    return;
+  }
+
+  const localPayload = await readLocalDatabaseOnly();
+  if (scoreDatabasePayload(localPayload) === 0) {
+    throw new Error("Yerel veri bos. Buluta bos veri gonderilmedi.");
+  }
+
   resetStorageClients();
-  await importRawDatabase(payload);
+  await importRawDatabase(localPayload);
 }
 
 export async function pullCloudToLocal() {
