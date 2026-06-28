@@ -4,7 +4,7 @@ import { getCustomerFeeForYear, normalizeYearlyFees, parseYearlyFeesInput } from
 import { normalizeCharge } from "./charges";
 import { isCustomerActiveInPeriod, normalizeActivePeriods } from "./customer-periods";
 import { normalizeClosedAt, isMonthlyChargeAllowed } from "./customer-closure";
-import { isDateInPeriod, resolvePeriodMonth } from "./period";
+import { getDefaultChargeDate, isDateInPeriod, resolvePeriodMonth } from "./period";
 import { readRawDatabase, writeRawDatabase } from "./storage";
 
 export { getDataDirectory } from "./storage";
@@ -559,6 +559,7 @@ export async function createCharge(input: {
   amount: unknown;
   description?: unknown;
   kind?: unknown;
+  date?: unknown;
 }) {
   const database = await readDatabase();
   const customerId = requireText(input.customerId, "Müşteri");
@@ -577,6 +578,15 @@ export async function createCharge(input: {
     throw new Error("Tahakkuk açıklaması zorunludur.");
   }
 
+  const date =
+    input.date !== undefined && String(input.date ?? "").trim()
+      ? requireText(input.date, "Tahakkuk tarihi")
+      : getDefaultChargeDate(year, month);
+
+  if (!isDateInPeriod(date, year)) {
+    throw new Error("Tahakkuk tarihi seçili dönem yılı içinde olmalıdır.");
+  }
+
   if (kind === "monthly") {
     const existing = database.charges.find(
       (item) =>
@@ -590,6 +600,7 @@ export async function createCharge(input: {
       existing.amount = normalizeAmount(input.amount);
       existing.description = description;
       existing.kind = "monthly";
+      existing.date = date;
       await writeDatabase(database);
       return normalizeCharge(existing);
     }
@@ -600,6 +611,7 @@ export async function createCharge(input: {
     customerId,
     year,
     month,
+    date,
     amount: normalizeAmount(input.amount),
     description,
     kind,
@@ -608,7 +620,7 @@ export async function createCharge(input: {
 
   database.charges.push(charge);
   await writeDatabase(database);
-  return charge;
+  return normalizeCharge(charge);
 }
 
 export async function updateCharge(
@@ -617,6 +629,7 @@ export async function updateCharge(
     month?: unknown;
     amount?: unknown;
     description?: unknown;
+    date?: unknown;
   }
 ) {
   const database = await readDatabase();
@@ -656,9 +669,18 @@ export async function updateCharge(
   charge.month = month;
   if (input.amount !== undefined) charge.amount = normalizeAmount(input.amount);
   if (input.description !== undefined) charge.description = String(input.description ?? "").trim();
+  if (input.date !== undefined) {
+    const date = requireText(input.date, "Tahakkuk tarihi");
+    if (!isDateInPeriod(date, period)) {
+      throw new Error("Tahakkuk tarihi seçili dönem yılı içinde olmalıdır.");
+    }
+    charge.date = date;
+  } else if (input.month !== undefined) {
+    charge.date = getDefaultChargeDate(period, month);
+  }
 
   await writeDatabase(database);
-  return charge;
+  return normalizeCharge(charge);
 }
 
 export async function deleteCharge(id: string) {
@@ -739,6 +761,7 @@ export async function generateMonthlyCharges(input: {
         amount: getCustomerFeeForYear(customer, year),
         description: getAccountingFeeDescription(month),
         kind: "monthly",
+        date: getDefaultChargeDate(year, month),
         createdAt: now()
       };
 

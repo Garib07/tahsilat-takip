@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Charge, Customer, Payment, SummaryRow } from "@/lib/types";
+import { normalizeCharge } from "@/lib/charges";
 import { getCustomerFeeForYear } from "@/lib/fees";
 
 const paymentMethods = ["Nakit", "Banka", "Kredi Kartı", "Diğer"];
@@ -1067,7 +1068,10 @@ function RecentTransactions({
           .slice(0, 8)
           .map((item) => {
             const customer = customers.find((entry) => entry.id === item.customerId);
-            const isPayment = "date" in item;
+            const isPayment = "method" in item;
+            const dateLabel = isPayment
+              ? item.date
+              : normalizeCharge(item as Charge).date;
             return (
               <div className="list-row" key={`${isPayment ? "payment" : "charge"}-${item.id}`}>
                 <div>
@@ -1076,7 +1080,7 @@ function RecentTransactions({
                     {customer?.name ?? "Mükellef"} · {formatCurrency(item.amount)}
                   </span>
                 </div>
-                <small>{isPayment ? item.date : `${item.month}/${item.year}`}</small>
+                <small>{dateLabel}</small>
               </div>
             );
           })}
@@ -1197,14 +1201,17 @@ function LedgerModal({
   let runningBalance = 0;
 
   const entries = [
-    ...customerCharges.map((charge) => ({
-      id: `charge-${charge.id}`,
-      date: `${charge.year}-${String(charge.month).padStart(2, "0")}-01`,
-      label: `${monthNames[charge.month - 1]} ${charge.year}`,
-      description: charge.description || "Tahakkuk",
-      debit: charge.amount,
-      credit: 0
-    })),
+    ...customerCharges.map((charge) => {
+      const normalized = normalizeCharge(charge);
+      return {
+        id: `charge-${charge.id}`,
+        date: normalized.date,
+        label: normalized.date,
+        description: charge.description || "Tahakkuk",
+        debit: charge.amount,
+        credit: 0
+      };
+    }),
     ...customerPayments.map((payment) => ({
       id: `payment-${payment.id}`,
       date: payment.date,

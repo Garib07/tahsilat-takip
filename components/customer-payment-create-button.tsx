@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { createPaymentAction } from "@/lib/actions";
 import { Modal } from "@/components/modal";
 import { formatAmountInput, formatAmountWithCents } from "@/lib/format";
+import { getDefaultPaymentDescription, paymentMethods } from "@/lib/payments";
 import { resolvePeriodMonth } from "@/lib/period";
-
-const paymentMethods = ["Nakit", "Banka"];
 
 function defaultPaymentDate(period: number) {
   const today = new Date();
@@ -33,7 +32,7 @@ export function CustomerPaymentCreateButton({
     date: defaultPaymentDate(period),
     amount: "",
     method: "Banka",
-    description: ""
+    description: getDefaultPaymentDescription("Banka")
   });
 
   function openModal() {
@@ -41,7 +40,7 @@ export function CustomerPaymentCreateButton({
       date: defaultPaymentDate(period),
       amount: "",
       method: "Banka",
-      description: ""
+      description: getDefaultPaymentDescription("Banka")
     });
     setMessage("");
     setOpen(true);
@@ -109,7 +108,14 @@ export function CustomerPaymentCreateButton({
             <span className="mb-1 block font-medium text-slate-700">Ödeme Tipi</span>
             <select
               value={form.method}
-              onChange={(event) => setForm({ ...form, method: event.target.value })}
+              onChange={(event) => {
+                const method = event.target.value;
+                setForm({
+                  ...form,
+                  method,
+                  description: getDefaultPaymentDescription(method)
+                });
+              }}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
             >
               {paymentMethods.map((method) => (

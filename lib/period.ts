@@ -17,3 +17,8 @@ export function isDateInPeriod(date: string, periodYear: number) {
   const parsed = new Date(`${date}T00:00:00`);
   return !Number.isNaN(parsed.getTime()) && parsed.getFullYear() === periodYear;
 }
+
+export function getDefaultChargeDate(year: number, month: number) {
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}

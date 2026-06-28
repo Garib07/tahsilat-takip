@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ChargeActions } from "@/components/charge-actions";
 import { Card } from "@/components/ui";
-import { formatCurrency, monthNames } from "@/lib/format";
+import { formatCurrency, formatDateLabel, monthNames } from "@/lib/format";
+import { normalizeCharge } from "@/lib/charges";
 import { Charge } from "@/lib/types";
 
 export function ChargesTable({
@@ -26,6 +27,7 @@ export function ChargesTable({
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
               <th className="px-6 py-3 font-medium">Cari</th>
+              <th className="px-6 py-3 font-medium">Tarih</th>
               <th className="px-6 py-3 font-medium">Ay</th>
               <th className="px-6 py-3 font-medium">Tutar</th>
               <th className="px-6 py-3 font-medium">Açıklama</th>
@@ -33,7 +35,9 @@ export function ChargesTable({
             </tr>
           </thead>
           <tbody>
-            {charges.map((charge) => (
+            {charges.map((charge) => {
+              const normalized = normalizeCharge(charge);
+              return (
               <tr key={charge.id} className="border-t border-slate-100">
                 <td className="px-6 py-3">
                   <Link
@@ -43,6 +47,7 @@ export function ChargesTable({
                     {customerMap[charge.customerId] ?? "—"}
                   </Link>
                 </td>
+                <td className="px-6 py-3 text-slate-600">{formatDateLabel(normalized.date)}</td>
                 <td className="px-6 py-3 text-slate-600">{monthNames[charge.month - 1]}</td>
                 <td className="px-6 py-3 font-medium text-slate-800">
                   {formatCurrency(charge.amount)}
@@ -52,10 +57,11 @@ export function ChargesTable({
                   <ChargeActions charge={charge} period={period} customerId={charge.customerId} />
                 </td>
               </tr>
-            ))}
+            );
+            })}
             {!charges.length ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                   {period} döneminde tahakkuk kaydı yok.
                 </td>
               </tr>

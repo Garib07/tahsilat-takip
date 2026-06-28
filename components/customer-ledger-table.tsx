@@ -7,7 +7,7 @@ import { CustomerPaymentCreateButton } from "@/components/customer-payment-creat
 import { PaymentActions } from "@/components/payment-actions";
 import { Card } from "@/components/ui";
 import { formatCurrency, formatDateLabel, monthNames } from "@/lib/format";
-import { isMonthlyCharge } from "@/lib/charges";
+import { isMonthlyCharge, normalizeCharge } from "@/lib/charges";
 import { CarryForward, Charge, Payment } from "@/lib/types";
 
 type LedgerRow =
@@ -42,11 +42,14 @@ export function CustomerLedgerTable({
           }
         ]
       : []),
-    ...charges.map((charge) => ({
-      kind: "charge" as const,
-      sortDate: `${charge.year}-${String(charge.month).padStart(2, "0")}-01`,
-      charge
-    })),
+    ...charges.map((charge) => {
+      const normalized = normalizeCharge(charge);
+      return {
+        kind: "charge" as const,
+        sortDate: normalized.date,
+        charge: normalized
+      };
+    }),
     ...payments.map((payment) => ({
       kind: "payment" as const,
       sortDate: payment.date,
@@ -113,7 +116,7 @@ export function CustomerLedgerTable({
                 row.kind === "carryforward"
                   ? "Devir"
                   : row.kind === "charge"
-                    ? `${monthNames[row.charge.month - 1]} ${row.charge.year}`
+                    ? formatDateLabel(row.charge.date)
                     : formatDateLabel(row.payment.date);
 
               const description =

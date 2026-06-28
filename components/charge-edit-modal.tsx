@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import { updateChargeAction } from "@/lib/actions";
 import { formatAmountInput, formatAmountWithCents, monthNames } from "@/lib/format";
+import { getDefaultChargeDate } from "@/lib/period";
 import { Charge } from "@/lib/types";
 
 export function ChargeEditModal({
@@ -23,6 +24,7 @@ export function ChargeEditModal({
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState({
     month: charge.month,
+    date: charge.date || getDefaultChargeDate(charge.year, charge.month),
     amount: formatAmountWithCents(String(charge.amount)),
     description: charge.description
   });
@@ -58,7 +60,14 @@ export function ChargeEditModal({
           <span className="mb-1 block font-medium text-slate-700">Ay</span>
           <select
             value={form.month}
-            onChange={(event) => setForm({ ...form, month: Number(event.target.value) })}
+            onChange={(event) => {
+              const month = Number(event.target.value);
+              setForm({
+                ...form,
+                month,
+                date: getDefaultChargeDate(period, month)
+              });
+            }}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
           >
             {monthNames.map((name, index) => (
@@ -67,6 +76,19 @@ export function ChargeEditModal({
               </option>
             ))}
           </select>
+        </label>
+
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-slate-700">Tarih</span>
+          <input
+            required
+            type="date"
+            min={`${period}-01-01`}
+            max={`${period}-12-31`}
+            value={form.date}
+            onChange={(event) => setForm({ ...form, date: event.target.value })}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+          />
         </label>
 
         <label className="block text-sm">

@@ -110,7 +110,7 @@ export async function createChargeAction(input: {
 export async function updateChargeAction(
   id: string,
   customerId: string,
-  input: { month: number; amount: string; description: string }
+  input: { month: number; date: string; amount: string; description: string }
 ) {
   const charge = await updateCharge(id, input);
   revalidateCustomer(customerId);

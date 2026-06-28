@@ -32,6 +32,7 @@ export type Charge = {
   customerId: string;
   year: number;
   month: number;
+  date: string;
   amount: number;
   description: string;
   kind: "monthly" | "service";

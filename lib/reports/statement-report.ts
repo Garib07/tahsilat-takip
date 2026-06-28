@@ -1,4 +1,4 @@
-import { isMonthlyCharge } from "@/lib/charges";
+import { isMonthlyCharge, normalizeCharge } from "@/lib/charges";
 import { formatDateLabel } from "@/lib/format";
 import { isDateInPeriod } from "@/lib/period";
 import { formatReportDate } from "@/lib/reports/format";
@@ -15,7 +15,7 @@ function roundMoney(value: number) {
 function buildStatementLines(
   period: number,
   carryForward: { fromYear: number; balance: number } | null,
-  charges: { month: number; year: number; amount: number; description: string; kind?: string }[],
+  charges: { month: number; year: number; date?: string; amount: number; description: string; kind?: string }[],
   payments: { date: string; amount: number; description: string; method: string }[]
 ) {
   type Row =
@@ -42,15 +42,18 @@ function buildStatementLines(
           }
         ]
       : []),
-    ...charges.map((charge) => ({
-      kind: "charge" as const,
-      sortDate: `${charge.year}-${String(charge.month).padStart(2, "0")}-01`,
-      month: charge.month,
-      year: charge.year,
-      amount: charge.amount,
-      description: charge.description,
-      chargeKind: charge.kind as "monthly" | "service"
-    })),
+    ...charges.map((charge) => {
+      const normalized = normalizeCharge(charge as Parameters<typeof normalizeCharge>[0]);
+      return {
+        kind: "charge" as const,
+        sortDate: normalized.date,
+        month: normalized.month,
+        year: normalized.year,
+        amount: normalized.amount,
+        description: normalized.description,
+        chargeKind: normalized.kind
+      };
+    }),
     ...payments.map((payment) => ({
       kind: "payment" as const,
       sortDate: payment.date,
@@ -98,7 +101,7 @@ function buildStatementLines(
 
     if (row.kind === "charge") {
       lines.push({
-        dateLabel: formatReportDate(1, row.month, row.year),
+        dateLabel: formatDateLabel(row.sortDate),
         description:
           row.description ||
           (isMonthlyCharge({
