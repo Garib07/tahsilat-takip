@@ -16,6 +16,7 @@ import {
   performYearEndRollover,
   updateCarryForward,
   deleteCarryForward,
+  upsertCarryForward,
   updateOfficeProfile,
   updateCustomerFromCard,
   updateCharge,
@@ -143,6 +144,19 @@ export async function updateCarryForwardAction(
   input: { amount: string; direction: "borc" | "alacak" }
 ) {
   await updateCarryForward(id, input);
+  revalidateCustomer(customerId);
+}
+
+export async function upsertCarryForwardAction(
+  customerId: string,
+  input: {
+    fromYear: number;
+    toYear: number;
+    amount: string;
+    direction: "borc" | "alacak";
+  }
+) {
+  await upsertCarryForward({ customerId, ...input });
   revalidateCustomer(customerId);
 }
 

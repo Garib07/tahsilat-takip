@@ -13,9 +13,9 @@ import {
   useTransition
 } from "react";
 import { useRouter } from "next/navigation";
-import { createChargeAction } from "@/lib/actions";
+import { createChargeAction, upsertCarryForwardAction } from "@/lib/actions";
 import { Modal } from "@/components/modal";
-import { serviceChargePresets } from "@/lib/charges";
+import { isDevirService, serviceChargePresets } from "@/lib/charges";
 import {
   formatAmountWithCents,
   getAccountingFeeDescription,
@@ -185,6 +185,10 @@ function ChargeCreateModal({
   const amountRef = useRef(amountSeed);
   const [description, setDescription] = useState(serviceChargePresets[0]);
   const [customDescription, setCustomDescription] = useState("");
+  const [devirFromYear, setDevirFromYear] = useState(period - 1);
+  const [devirDirection, setDevirDirection] = useState<"borc" | "alacak">("borc");
+
+  const isDevirMode = mode === "service" && isDevirService(description);
 
   const existingMonthSet = useMemo(
     () => new Set(existingMonthlyMonths),
@@ -233,16 +237,23 @@ function ChargeCreateModal({
     event.preventDefault();
     setMessage("");
 
-    if (!selectedMonths.length) {
+    if (!selectedMonths.length && !isDevirMode) {
       setMessage("En az bir ay seçiniz.");
       return;
     }
 
     if (mode === "service") {
-      const serviceDescription = resolveServiceDescription();
-      if (!serviceDescription) {
-        setMessage("Hizmet açıklaması giriniz.");
-        return;
+      if (isDevirService(description)) {
+        if (!formatAmountWithCents(amountRef.current)) {
+          setMessage("Devir tutarı giriniz.");
+          return;
+        }
+      } else {
+        const serviceDescription = resolveServiceDescription();
+        if (!serviceDescription) {
+          setMessage("Hizmet açıklaması giriniz.");
+          return;
+        }
       }
     }
 
@@ -250,32 +261,41 @@ function ChargeCreateModal({
 
     startTransition(async () => {
       try {
-        for (const month of selectedMonths) {
-          if (mode === "monthly") {
-            await createChargeAction({
-              customerId,
-              year: period,
-              month,
-              amount: normalizedAmount,
-              description: getAccountingFeeDescription(month),
-              kind: "monthly"
-            });
-          } else {
-            await createChargeAction({
-              customerId,
-              year: period,
-              month,
-              amount: normalizedAmount,
-              description: resolveServiceDescription(),
-              kind: "service"
-            });
+        if (mode === "service" && isDevirService(description)) {
+          await upsertCarryForwardAction(customerId, {
+            fromYear: devirFromYear,
+            toYear: period,
+            amount: normalizedAmount,
+            direction: devirDirection
+          });
+        } else {
+          for (const month of selectedMonths) {
+            if (mode === "monthly") {
+              await createChargeAction({
+                customerId,
+                year: period,
+                month,
+                amount: normalizedAmount,
+                description: getAccountingFeeDescription(month),
+                kind: "monthly"
+              });
+            } else {
+              await createChargeAction({
+                customerId,
+                year: period,
+                month,
+                amount: normalizedAmount,
+                description: resolveServiceDescription(),
+                kind: "service"
+              });
+            }
           }
         }
 
         onClose();
         router.refresh();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Tahakkuk kaydedilemedi.");
+        setMessage(error instanceof Error ? error.message : "Kayıt oluşturulamadı.");
       }
     });
   }
@@ -316,7 +336,7 @@ function ChargeCreateModal({
         ) : (
           <>
             Danışmanlık, defter tasdik gibi ek hizmetler için tahakkuk. Aynı aya birden fazla hizmet
-            eklenebilir.
+            eklenebilir. <strong>Devir</strong> ile cariye manuel devir bakiyesi de girebilirsiniz.
           </>
         )}
       </p>
@@ -337,7 +357,14 @@ function ChargeCreateModal({
               <span className="mb-1 block font-medium text-slate-700">Hizmet Türü</span>
               <select
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setDescription(next);
+                  if (isDevirService(next)) {
+                    setDevirFromYear(period - 1);
+                    resetAmount("");
+                  }
+                }}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
               >
                 {serviceChargePresets.map((preset) => (
@@ -360,9 +387,44 @@ function ChargeCreateModal({
                 />
               </label>
             ) : null}
+
+            {isDevirMode ? (
+              <>
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Kaynak Yıl</span>
+                  <input
+                    required
+                    type="number"
+                    min={2000}
+                    max={period - 1}
+                    value={devirFromYear}
+                    onChange={(event) => setDevirFromYear(Number(event.target.value))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Bakiye Yönü</span>
+                  <select
+                    value={devirDirection}
+                    onChange={(event) =>
+                      setDevirDirection(event.target.value === "alacak" ? "alacak" : "borc")
+                    }
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+                  >
+                    <option value="borc">Borç (cari borçlu)</option>
+                    <option value="alacak">Alacak (cari alacaklı)</option>
+                  </select>
+                </label>
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {period} dönemi için devir bakiyesi eklenir veya güncellenir. Yıl sonu toplu devir
+                  için Firma Yönetimi → Yıl Sonu Devir kullanılabilir.
+                </p>
+              </>
+            ) : null}
           </>
         ) : null}
 
+        {!isDevirMode ? (
         <MonthSelector
           mode={mode}
           selectedMonths={selectedMonths}
@@ -373,10 +435,13 @@ function ChargeCreateModal({
           newMonthCount={newMonthCount}
           updateMonthCount={updateMonthCount}
         />
+        ) : null}
 
         <AmountInput
-          key={`${mode}-${amountSeed}`}
-          label={mode === "monthly" ? "Aylık Tutar" : "Tutar"}
+          key={`${mode}-${description}-${amountSeed}`}
+          label={
+            isDevirMode ? "Devir Tutarı" : mode === "monthly" ? "Aylık Tutar" : "Tutar"
+          }
           initialValue={amountSeed}
           amountRef={amountRef}
           hint={mode === "monthly" ? "Seçili tüm aylar için aynı tutar uygulanır." : undefined}
@@ -386,22 +451,26 @@ function ChargeCreateModal({
 
         <button
           type="submit"
-          disabled={pending || !selectedMonths.length}
+          disabled={pending || (!isDevirMode && !selectedMonths.length)}
           className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
-            mode === "monthly"
-              ? "bg-rose-600 hover:bg-rose-700"
-              : "bg-violet-600 hover:bg-violet-700"
+            isDevirMode
+              ? "bg-amber-600 hover:bg-amber-700"
+              : mode === "monthly"
+                ? "bg-rose-600 hover:bg-rose-700"
+                : "bg-violet-600 hover:bg-violet-700"
           }`}
         >
           {pending
             ? "Kaydediliyor..."
-            : mode === "service"
-              ? selectedMonths.length > 1
-                ? `${selectedMonths.length} Ay İçin Hizmet Tahakkuku`
-                : "Hizmet Tahakkuku Kaydet"
-              : selectedMonths.length > 1
-                ? `${selectedMonths.length} Ay İçin Tahakkuk Oluştur`
-                : "Tahakkuku Kaydet"}
+            : isDevirMode
+              ? "Devir Bakiyesini Kaydet"
+              : mode === "service"
+                ? selectedMonths.length > 1
+                  ? `${selectedMonths.length} Ay İçin Hizmet Tahakkuku`
+                  : "Hizmet Tahakkuku Kaydet"
+                : selectedMonths.length > 1
+                  ? `${selectedMonths.length} Ay İçin Tahakkuk Oluştur`
+                  : "Tahakkuku Kaydet"}
         </button>
       </form>
     </Modal>

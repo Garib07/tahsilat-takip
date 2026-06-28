@@ -25,5 +25,12 @@ export const serviceChargePresets = [
   "Defter Tasdik Ücreti",
   "Kuruluş / Tesis İşlemleri",
   "Beyanname Düzenleme",
+  "Devir",
   "Diğer Hizmet"
 ];
+
+export const devirServicePreset = "Devir";
+
+export function isDevirService(description: string) {
+  return description.trim() === devirServicePreset;
+}

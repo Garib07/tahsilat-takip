@@ -1129,6 +1129,74 @@ export async function updateCarryForward(
   return { customerId: record.customerId, deleted: false, carryForward: record };
 }
 
+export async function upsertCarryForward(input: {
+  customerId: unknown;
+  fromYear: unknown;
+  toYear: unknown;
+  amount: unknown;
+  direction: unknown;
+}) {
+  const database = await readDatabase();
+  const customerId = requireText(input.customerId, "Müşteri");
+  const customer = database.customers.find((item) => item.id === customerId);
+
+  if (!customer) {
+    throw new Error("Müşteri bulunamadı.");
+  }
+
+  const fromYear = Number(input.fromYear);
+  const toYear = Number(input.toYear);
+
+  if (!Number.isInteger(fromYear) || fromYear < 2000 || fromYear > 2100) {
+    throw new Error("Geçerli bir kaynak yıl seçiniz.");
+  }
+
+  if (!Number.isInteger(toYear) || toYear < 2000 || toYear > 2100) {
+    throw new Error("Geçerli bir hedef yıl seçiniz.");
+  }
+
+  if (fromYear >= toYear) {
+    throw new Error("Kaynak yıl hedef yıldan küçük olmalıdır.");
+  }
+
+  requireCustomerInPeriod(customer, toYear);
+
+  const direction = input.direction === "alacak" ? "alacak" : "borc";
+  const amount = normalizeAmount(input.amount);
+  const balance = direction === "alacak" ? -amount : amount;
+
+  const existing = getCarryForwardRecord(database, customerId, toYear);
+
+  if (balance === 0) {
+    if (existing) {
+      database.carryForwards = database.carryForwards.filter((item) => item.id !== existing.id);
+      await writeDatabase(database);
+    }
+    return { customerId, deleted: true, carryForward: null };
+  }
+
+  if (existing) {
+    existing.fromYear = fromYear;
+    existing.balance = balance;
+    existing.createdAt = now();
+    await writeDatabase(database);
+    return { customerId, deleted: false, carryForward: existing };
+  }
+
+  const carryForward: CarryForward = {
+    id: randomUUID(),
+    customerId,
+    fromYear,
+    toYear,
+    balance,
+    createdAt: now()
+  };
+
+  database.carryForwards.push(carryForward);
+  await writeDatabase(database);
+  return { customerId, deleted: false, carryForward };
+}
+
 export async function deleteCarryForward(id: string) {
   const database = await readDatabase();
   const record = database.carryForwards.find((item) => item.id === id);
