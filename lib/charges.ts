@@ -23,5 +23,6 @@ export const serviceChargePresets = [
   "Defter Tasdik Ücreti",
   "Kuruluş / Tesis İşlemleri",
   "Beyanname Düzenleme",
+  "Devir",
   "Diğer Hizmet"
 ];

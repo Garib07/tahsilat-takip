@@ -77,6 +77,26 @@ function waitForServer(url, timeoutMs = 90000) {
   });
 }
 
+function buildServerEnv(dataDir) {
+  const userData = app.getPath("userData");
+  const {
+    AUTH_USERNAME: _u,
+    AUTH_PASSWORD: _p,
+    AUTH_SECRET: _s,
+    TURSO_DATABASE_URL: _url,
+    TURSO_AUTH_TOKEN: _token,
+    ...baseEnv
+  } = process.env;
+
+  return {
+    ...baseEnv,
+    TAHSILAT_DESKTOP: "1",
+    TAHSILAT_USER_DATA: userData,
+    TAHSILAT_SYNC_CONFIG: path.join(userData, "sync.json"),
+    TAHSILAT_DATA_DIR: dataDir
+  };
+}
+
 function startStandaloneServer(dataDir) {
   const standaloneDir = isPackaged
     ? path.join(process.resourcesPath, "standalone")
@@ -90,12 +110,11 @@ function startStandaloneServer(dataDir) {
   serverProcess = spawn(process.execPath, [serverPath], {
     cwd: standaloneDir,
     env: {
-      ...process.env,
+      ...buildServerEnv(dataDir),
       ELECTRON_RUN_AS_NODE: "1",
       NODE_ENV: "production",
       PORT: SERVER_PORT,
-      HOSTNAME: "0.0.0.0",
-      TAHSILAT_DATA_DIR: dataDir
+      HOSTNAME: "0.0.0.0"
     },
     stdio: "inherit",
     windowsHide: true
@@ -113,10 +132,7 @@ function startDevServer() {
 
   serverProcess = spawn(npmCmd, ["run", "dev"], {
     cwd: process.cwd(),
-    env: {
-      ...process.env,
-      TAHSILAT_DATA_DIR: resolveDataDir()
-    },
+    env: buildServerEnv(resolveDataDir()),
     stdio: "inherit",
     shell: false,
     windowsHide: true

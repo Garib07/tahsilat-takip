@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { OfficeProfile } from "@/lib/types";
 
@@ -15,8 +16,20 @@ export function AppShell({
   showLogout?: boolean;
   cloudMode?: boolean;
 }) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title = office.firmName || "Tahsilat Takip";
+
+  useEffect(() => {
+    if (!cloudMode) return;
+
+    function refreshOnFocus() {
+      router.refresh();
+    }
+
+    window.addEventListener("focus", refreshOnFocus);
+    return () => window.removeEventListener("focus", refreshOnFocus);
+  }, [cloudMode, router]);
 
   function closeMobileMenu() {
     setMobileOpen(false);

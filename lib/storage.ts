@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { createClient, type Client } from "@libsql/client";
+import { isDesktopApp, readSyncConfigSync } from "./sync-config";
 
 const emptyPayload = JSON.stringify({
   customers: [],
@@ -28,7 +29,35 @@ const emptyPayload = JSON.stringify({
 });
 
 export function isCloudStorageEnabled() {
-  return Boolean(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
+  return Boolean(getTursoCredentials());
+}
+
+function getTursoCredentials() {
+  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+    return {
+      url: process.env.TURSO_DATABASE_URL,
+      token: process.env.TURSO_AUTH_TOKEN
+    };
+  }
+
+  if (!isDesktopApp()) {
+    return null;
+  }
+
+  const config = readSyncConfigSync();
+  if (config?.enabled && config.tursoDatabaseUrl && config.tursoAuthToken) {
+    return {
+      url: config.tursoDatabaseUrl,
+      token: config.tursoAuthToken
+    };
+  }
+
+  return null;
+}
+
+export function resetStorageClients() {
+  tursoClient = null;
+  schemaReady = false;
 }
 
 function resolveDataDir() {
@@ -50,14 +79,15 @@ let tursoClient: Client | null = null;
 let schemaReady = false;
 
 function getTursoClient() {
-  if (!isCloudStorageEnabled()) {
+  const credentials = getTursoCredentials();
+  if (!credentials) {
     throw new Error("Turso yapılandırması eksik.");
   }
 
   if (!tursoClient) {
     tursoClient = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN!
+      url: credentials.url,
+      authToken: credentials.token
     });
   }
 
@@ -95,10 +125,28 @@ async function readFromFile(): Promise<string> {
   }
 }
 
-async function writeToFile(payload: string) {
+async function mirrorLocalBackup(payload: string) {
+  if (!isDesktopApp() || !isCloudStorageEnabled()) {
+    return;
+  }
+
   const dataFile = getDataFile();
   await mkdir(resolveDataDir(), { recursive: true });
   await writeFile(dataFile, payload, "utf8");
+}
+
+export async function writeLocalDatabaseOnly(payload: string) {
+  const dataFile = getDataFile();
+  await mkdir(resolveDataDir(), { recursive: true });
+  await writeFile(dataFile, payload, "utf8");
+}
+
+export async function readLocalDatabaseOnly() {
+  return readFromFile();
+}
+
+async function writeToFile(payload: string) {
+  await writeLocalDatabaseOnly(payload);
 }
 
 async function readFromTurso(): Promise<string> {
@@ -140,6 +188,7 @@ export async function readRawDatabase(): Promise<string> {
 export async function writeRawDatabase(payload: string) {
   if (isCloudStorageEnabled()) {
     await writeToTurso(payload);
+    await mirrorLocalBackup(payload);
     return;
   }
   await writeToFile(payload);

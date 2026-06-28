@@ -11,7 +11,7 @@
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "electron:dev": "cross-env ELECTRON_DEV=1 electron electron/main.mjs",
-    "electron:pack": "cross-env ELECTRON_BUILD=1 next build && node scripts/prepare-standalone.cjs && electron-builder --win",
+    "electron:pack": "node scripts/electron-pack.cjs",
     "db:migrate": "node scripts/migrate-to-turso.cjs"
   },
   "dependencies": {

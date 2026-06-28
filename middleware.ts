@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isAuthEnabled()) {
+  if (!isAuthEnabled() || process.env.TAHSILAT_DESKTOP === "1") {
     return NextResponse.next();
   }
 
