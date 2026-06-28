@@ -19,6 +19,12 @@ if (fs.existsSync(publicDir)) {
   fs.cpSync(publicDir, path.join(standaloneDir, "public"), { recursive: true });
 }
 
+const nestedDistElectron = path.join(standaloneDir, "dist-electron");
+if (fs.existsSync(nestedDistElectron)) {
+  fs.rmSync(nestedDistElectron, { recursive: true, force: true });
+  console.log("Standalone paketinden dist-electron kaldirildi.");
+}
+
 const seedDir = path.join(root, "electron", "seed");
 fs.mkdirSync(seedDir, { recursive: true });
 

@@ -20,6 +20,19 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
+export function sanitizeAmountTyping(value: string) {
+  const compact = value.replace(/\s/g, "").replace(/\./g, "");
+  const commaIndex = compact.indexOf(",");
+  const integerPart = (commaIndex === -1 ? compact : compact.slice(0, commaIndex)).replace(
+    /[^\d]/g,
+    ""
+  );
+  const decimalPart =
+    commaIndex === -1 ? "" : compact.slice(commaIndex + 1).replace(/[^\d]/g, "").slice(0, 2);
+
+  return commaIndex === -1 ? integerPart : `${integerPart},${decimalPart}`;
+}
+
 export function formatAmountInput(value: string) {
   const normalized = value.replace(/\s/g, "").replace(/\./g, "").replace(/[^\d,]/g, "");
   const [integerPart, decimalPart] = normalized.split(",");

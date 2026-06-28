@@ -5,9 +5,16 @@ const path = require("node:path");
 const root = process.cwd();
 const envPath = path.join(root, ".env");
 const envBackup = path.join(root, ".env.build-backup");
+const distElectron = path.join(root, "dist-electron");
 
 function run(command) {
   execSync(command, { stdio: "inherit", cwd: root, env: { ...process.env, ELECTRON_BUILD: "1" } });
+}
+
+function removeDir(dir) {
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 try {
@@ -15,6 +22,9 @@ try {
     fs.renameSync(envPath, envBackup);
     console.log(".env build sirasinda devre disi birakildi (masaustu giris ekrani onlenir).");
   }
+
+  removeDir(distElectron);
+  console.log("Eski dist-electron klasoru temizlendi.");
 
   run("next build");
   run("node scripts/prepare-standalone.cjs");

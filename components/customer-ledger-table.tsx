@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { CarryForwardActions } from "@/components/carry-forward-actions";
 import { ChargeActions } from "@/components/charge-actions";
 import { CustomerChargeCreateButton } from "@/components/customer-charge-create-button";
@@ -32,30 +33,39 @@ export function CustomerLedgerTable({
   carryForward: CarryForward | null;
   openingBalance: number;
 }) {
-  const rows: LedgerRow[] = [
-    ...(carryForward
-      ? [
-          {
-            kind: "carryforward" as const,
-            sortDate: `${period}-00-00`,
-            carryForward
-          }
-        ]
-      : []),
-    ...charges.map((charge) => {
-      const normalized = normalizeCharge(charge);
-      return {
-        kind: "charge" as const,
-        sortDate: normalized.date,
-        charge: normalized
-      };
-    }),
-    ...payments.map((payment) => ({
-      kind: "payment" as const,
-      sortDate: payment.date,
-      payment
-    }))
-  ].sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+  const existingMonthlyMonths = useMemo(
+    () => charges.filter((charge) => isMonthlyCharge(charge)).map((charge) => charge.month),
+    [charges]
+  );
+
+  const rows: LedgerRow[] = useMemo(
+    () =>
+      [
+        ...(carryForward
+          ? [
+              {
+                kind: "carryforward" as const,
+                sortDate: `${period}-00-00`,
+                carryForward
+              }
+            ]
+          : []),
+        ...charges.map((charge) => {
+          const normalized = normalizeCharge(charge);
+          return {
+            kind: "charge" as const,
+            sortDate: normalized.date,
+            charge: normalized
+          };
+        }),
+        ...payments.map((payment) => ({
+          kind: "payment" as const,
+          sortDate: payment.date,
+          payment
+        }))
+      ].sort((a, b) => a.sortDate.localeCompare(b.sortDate)),
+    [carryForward, charges, payments, period]
+  );
 
   let runningBalance = 0;
 
@@ -71,9 +81,7 @@ export function CustomerLedgerTable({
             customerId={customerId}
             period={period}
             defaultAmount={defaultMonthlyFee}
-            existingMonthlyMonths={charges
-              .filter((charge) => isMonthlyCharge(charge))
-              .map((charge) => charge.month)}
+            existingMonthlyMonths={existingMonthlyMonths}
           />
           <CustomerPaymentCreateButton customerId={customerId} period={period} />
         </div>
