@@ -1,0 +1,155 @@
+"use client";
+
+import { FormEvent, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Modal } from "@/components/modal";
+import { createPaymentAction } from "@/lib/actions";
+import { formatAmountInput, formatAmountWithCents } from "@/lib/format";
+import { Customer } from "@/lib/types";
+
+const paymentMethods = ["Nakit", "Banka"];
+
+export function PaymentCreateButton({
+  customers,
+  period
+}: {
+  customers: Customer[];
+  period: number;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [form, setForm] = useState({
+    customerId: "",
+    date: new Date().toISOString().slice(0, 10),
+    amount: "",
+    method: "Banka",
+    description: ""
+  });
+
+  function resetForm() {
+    setForm({
+      customerId: "",
+      date: new Date().toISOString().slice(0, 10),
+      amount: "",
+      method: "Banka",
+      description: ""
+    });
+    setMessage("");
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setMessage("");
+
+    startTransition(async () => {
+      try {
+        await createPaymentAction(form);
+        resetForm();
+        setOpen(false);
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Tahsilat kaydedilemedi.");
+      }
+    });
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Yeni Tahsilat Ekle
+      </button>
+
+      <Modal open={open} onClose={() => setOpen(false)} title="Yeni Tahsilat Ekle">
+        <p className="mb-4 text-sm text-slate-500">
+          Tahsilat tarihi <strong>{period}</strong> yılı içinde olmalıdır.
+        </p>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Mükellef</span>
+            <select
+              required
+              value={form.customerId}
+              onChange={(event) => setForm({ ...form, customerId: event.target.value })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+            >
+              <option value="">Seçiniz</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Tarih</span>
+            <input
+              required
+              type="date"
+              min={`${period}-01-01`}
+              max={`${period}-12-31`}
+              value={form.date}
+              onChange={(event) => setForm({ ...form, date: event.target.value })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+            />
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Tutar</span>
+            <input
+              required
+              inputMode="decimal"
+              value={form.amount}
+              onChange={(event) =>
+                setForm({ ...form, amount: formatAmountInput(event.target.value) })
+              }
+              onBlur={() => setForm({ ...form, amount: formatAmountWithCents(form.amount) })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+              placeholder="5.000,00"
+            />
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Ödeme Tipi</span>
+            <select
+              value={form.method}
+              onChange={(event) => setForm({ ...form, method: event.target.value })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+            >
+              {paymentMethods.map((method) => (
+                <option key={method} value={method}>
+                  {method}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Açıklama</span>
+            <input
+              value={form.description}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+            />
+          </label>
+
+          {message ? <p className="text-sm text-rose-600">{message}</p> : null}
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            {pending ? "Kaydediliyor..." : "Tahsilatı Kaydet"}
+          </button>
+        </form>
+      </Modal>
+    </>
+  );
+}

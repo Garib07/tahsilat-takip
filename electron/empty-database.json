@@ -1,0 +1,24 @@
+{
+  "customers": [],
+  "charges": [],
+  "payments": [],
+  "carryForwards": [],
+  "office": {
+    "period": 2026,
+    "currency": "TL",
+    "firmName": "",
+    "authorizedPerson": "",
+    "mobile": "",
+    "phone": "",
+    "fax": "",
+    "address": "",
+    "city": "",
+    "district": "",
+    "taxOffice": "",
+    "taxNumber": "",
+    "email": "",
+    "website": "",
+    "logoDataUrl": "",
+    "updatedAt": ""
+  }
+}

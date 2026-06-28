@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.statement-table-head {
+  background: #8ec5e8;
+}
+
+.statement-row-even {
+  background: #ffffff;
+}
+
+.statement-row-odd {
+  background: #eef3f8;
+}
+
+.statement-meta {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+  align-items: start;
+}
+
+.statement-meta-center {
+  text-align: center;
+}
+
+.statement-meta-right {
+  text-align: right;
+}
+
+.statement-office-header {
+  width: 100%;
+  border-bottom: 3px solid #334155;
+  padding-bottom: 0.5rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  body > div {
+    min-height: auto !important;
+  }
+
+  main {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .statement-print-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .statement-print-shell {
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+
+  .print-page-break {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-document {
+    max-width: 920px !important;
+    margin: 0 auto !important;
+    background: white !important;
+  }
+
+  .statement-sheet {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .statement-table thead {
+    display: table-header-group;
+  }
+
+  .statement-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .statement-summary-wrap {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .statement-meta {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .statement-meta-center {
+    text-align: center !important;
+  }
+
+  .statement-meta-right {
+    text-align: right !important;
+  }
+
+  .statement-table-head,
+  .statement-title-bar,
+  .statement-row-even,
+  .statement-row-odd {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .statement-table-head {
+    background: #8ec5e8 !important;
+    color: white !important;
+  }
+
+  .statement-title-bar {
+    background: #5f5f5f !important;
+    color: white !important;
+  }
+
+  .statement-row-even {
+    background: #ffffff !important;
+  }
+
+  .statement-row-odd {
+    background: #eef3f8 !important;
+  }
+}

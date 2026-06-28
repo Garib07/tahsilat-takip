@@ -1,0 +1,80 @@
+{
+  "name": "mali-musavir-tahsilat",
+  "version": "2.0.0",
+  "description": "Mali müşavir tahsilat ve cari takip uygulaması",
+  "author": "Tahsilat Takip",
+  "private": true,
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "lint": "next lint",
+    "electron:dev": "cross-env ELECTRON_DEV=1 electron electron/main.mjs",
+    "electron:pack": "next build && node scripts/prepare-standalone.cjs && electron-builder --win",
+    "db:migrate": "node scripts/migrate-to-turso.cjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "@tailwindcss/postcss": "^4.3.1",
+    "jose": "^6.0.11",
+    "next": "latest",
+    "postcss": "^8.5.15",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "typescript": "latest"
+  },
+  "build": {
+    "appId": "com.tahsilat.takip",
+    "productName": "Tahsilat Takip",
+    "artifactName": "Tahsilat-Takip-Setup-${version}.${ext}",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/main.mjs",
+      "electron/empty-database.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "standalone",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "electron/seed",
+        "to": "seed",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tahsilat Takip"
+    }
+  }
+}
