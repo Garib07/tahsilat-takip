@@ -79,14 +79,7 @@ export function ReportsPanel({
     });
   }
 
-  function openPrintPreview() {
-    if (!selectedCustomerIds.length) return;
-    window.open(
-      buildStatementPrintUrl(period, selectedCustomerIds, years),
-      "_blank",
-      "noopener,noreferrer"
-    );
-  }
+  const printUrl = buildStatementPrintUrl(period, selectedCustomerIds, years);
   return (
     <>
       <PageHeader
@@ -132,14 +125,18 @@ export function ReportsPanel({
             >
               CSV İndir
             </a>
-          <button
-            type="button"
-            onClick={openPrintPreview}
-            disabled={!selectedCustomerIds.length}
-            className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-          >
-            Cari Hesap Dökümü
-          </button>
+            <a
+              href={printUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white ${
+                selectedCustomerIds.length
+                  ? "bg-slate-900 hover:bg-slate-800"
+                  : "pointer-events-none bg-slate-300"
+              }`}
+            >
+              Cari Hesap Dökümü
+            </a>
           </div>
 
           <p className="text-xs text-slate-500">

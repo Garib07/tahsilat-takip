@@ -7,7 +7,13 @@ import {
   resolveIncludedYears
 } from "@/lib/reports/years";
 import { StatementReport, StatementReportLine } from "@/lib/types";
-import { getCustomerStatement, getOfficeProfile, listCustomers, readDatabase } from "@/lib/store";
+import {
+  getCustomerById,
+  getCustomerStatement,
+  getOfficeProfile,
+  listCustomers,
+  readDatabase
+} from "@/lib/store";
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -201,14 +207,14 @@ export async function buildStatementReports(
   customerIds?: string[],
   includedYears?: number[]
 ) {
-  const customers = await listCustomers({ period });
-  const selectedIds = customerIds?.length ? new Set(customerIds) : null;
-  const filtered = selectedIds
-    ? customers.filter((customer) => selectedIds.has(customer.id))
-    : customers;
+  const customers = customerIds?.length
+    ? (
+        await Promise.all(customerIds.map((id) => getCustomerById(id)))
+      ).filter((customer): customer is NonNullable<typeof customer> => customer !== null)
+    : await listCustomers({ period });
 
   const reports: StatementReport[] = [];
-  for (const customer of filtered) {
+  for (const customer of customers) {
     reports.push(await buildStatementReport(customer.id, period, includedYears));
   }
 

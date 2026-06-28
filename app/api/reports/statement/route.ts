@@ -1,6 +1,9 @@
 import { buildStatementExportRows } from "@/lib/reports/statement-report";
 import { csvResponse, rowsToCsv } from "@/lib/reports/spreadsheet";
 import { formatIncludedYearsLabel, parseYearsParam } from "@/lib/reports/years";
+
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

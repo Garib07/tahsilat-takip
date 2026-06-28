@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StatementYearSelector } from "@/components/statement-year-selector";
 import {
   buildStatementExportUrl,
@@ -10,6 +10,9 @@ import { resolveIncludedYears } from "@/lib/reports/years";
 
 const buttonClass =
   "rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50";
+
+const printButtonClass =
+  "inline-flex items-center rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800";
 
 export function CustomerReportActions({
   customerId,
@@ -22,14 +25,12 @@ export function CustomerReportActions({
   activePeriods?: number[];
   compact?: boolean;
 }) {
-  const customerIds = [customerId];
+  const customerIds = useMemo(() => [customerId], [customerId]);
   const [selectedYears, setSelectedYears] = useState<number[]>(() => [period]);
   const [showYearPicker, setShowYearPicker] = useState(false);
   const years = resolveIncludedYears(period, selectedYears, activePeriods);
-
-  function openPrint() {
-    window.open(buildStatementPrintUrl(period, customerIds, years), "_blank", "noopener,noreferrer");
-  }
+  const printUrl = buildStatementPrintUrl(period, customerIds, years);
+  const excelUrl = buildStatementExportUrl(period, customerIds, "excel", years);
 
   if (compact) {
     return (
@@ -75,16 +76,15 @@ export function CustomerReportActions({
                 >
                   Excel
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowYearPicker(false);
-                    openPrint();
-                  }}
-                  className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+                <a
+                  href={buildStatementPrintUrl(period, customerIds, years)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={printButtonClass}
+                  onClick={() => setShowYearPicker(false)}
                 >
                   Döküm
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@ export function CustomerReportActions({
       />
       <div className="flex flex-wrap gap-2">
         <a
-          href={buildStatementExportUrl(period, customerIds, "excel", years)}
+          href={excelUrl}
           className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
         >
           Excel İndir
@@ -114,13 +114,9 @@ export function CustomerReportActions({
         >
           CSV
         </a>
-        <button
-          type="button"
-          onClick={openPrint}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
-        >
+        <a href={printUrl} target="_blank" rel="noopener noreferrer" className={printButtonClass}>
           Cari Hesap Dökümü
-        </button>
+        </a>
       </div>
     </div>
   );
