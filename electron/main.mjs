@@ -3,29 +3,10 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function resolvePreloadPath() {
-  const candidates = [
-    path.join(__dirname, "preload.cjs"),
-    path.join(process.resourcesPath, "app.asar.unpacked", "electron", "preload.cjs"),
-    path.join(app.getAppPath(), "electron", "preload.cjs")
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  console.error("Preload script bulunamadi.");
-  return path.join(__dirname, "preload.cjs");
-}
-
 const isDev = process.env.ELECTRON_DEV === "1";
-const isPackaged = app.isPackaged;
 const SERVER_PORT = isDev ? "3000" : "3847";
 const SERVER_URL = `http://127.0.0.1:${SERVER_PORT}`;
 
@@ -116,7 +97,7 @@ function buildServerEnv(dataDir) {
 }
 
 function startStandaloneServer(dataDir) {
-  const standaloneDir = isPackaged
+  const standaloneDir = app.isPackaged
     ? path.join(process.resourcesPath, "standalone")
     : path.join(process.cwd(), ".next", "standalone");
   const serverPath = path.join(standaloneDir, "server.js");
@@ -169,160 +150,6 @@ async function startBackend() {
   await waitForServer(SERVER_URL);
 }
 
-function isLocalPrintUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return (
-      (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost") &&
-      parsed.pathname.startsWith("/reports/print")
-    );
-  } catch {
-    return false;
-  }
-}
-
-function isLocalAppUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
-  } catch {
-    return false;
-  }
-}
-
-function buildWebPreferences() {
-  return {
-    contextIsolation: true,
-    nodeIntegration: false,
-    sandbox: true,
-    preload: resolvePreloadPath()
-  };
-}
-
-async function waitForPrintContent(webContents, timeoutMs = 20000) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    if (webContents.isDestroyed()) {
-      return false;
-    }
-
-    try {
-      const ready = await webContents.executeJavaScript(`
-        (() => {
-          const doc = document.querySelector(".print-document");
-          const rows = document.querySelectorAll(".statement-table tbody tr");
-          return Boolean(doc && doc.offsetHeight > 120 && rows.length > 0);
-        })()
-      `);
-      if (ready) return true;
-    } catch {
-      // Sayfa hâlâ yükleniyor.
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-
-  return false;
-}
-
-function waitForPrintReady(webContents) {
-  return webContents.executeJavaScript(`
-    new Promise((resolve) => {
-      const done = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
-      if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(done).catch(done);
-      } else {
-        done();
-      }
-    })
-  `);
-}
-
-async function exportStatementPdf(webContents) {
-  const browserWindow = BrowserWindow.fromWebContents(webContents);
-  if (!browserWindow || browserWindow.isDestroyed()) {
-    return { ok: false, error: "Yazdırma penceresi bulunamadı." };
-  }
-
-  const ready = await waitForPrintContent(webContents);
-  if (!ready) {
-    return { ok: false, error: "Ekstre içeriği hazır değil." };
-  }
-
-  await waitForPrintReady(webContents);
-  browserWindow.show();
-  browserWindow.focus();
-
-  if (webContents.isDestroyed()) {
-    return { ok: false, error: "Yazdırma penceresi kapandı." };
-  }
-
-  const pdfBuffer = await webContents.printToPDF({
-    printBackground: true,
-    pageSize: "A4",
-    margins: {
-      marginType: "default"
-    }
-  });
-
-  const { canceled, filePath } = await dialog.showSaveDialog(browserWindow, {
-    title: "Cari Hesap Dökümü Kaydet",
-    defaultPath: path.join(app.getPath("documents"), `cari-dokum-${Date.now()}.pdf`),
-    filters: [{ name: "PDF", extensions: ["pdf"] }]
-  });
-
-  if (canceled || !filePath) {
-    return { ok: false, error: "Kayıt iptal edildi." };
-  }
-
-  fs.writeFileSync(filePath, pdfBuffer);
-  await shell.openPath(filePath);
-  return { ok: true, path: filePath };
-}
-
-async function printWebContents(webContents) {
-  try {
-    return await exportStatementPdf(webContents);
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "PDF oluşturulamadı."
-    };
-  }
-}
-
-  const parsed = new URL(url);
-  parsed.searchParams.delete("print");
-
-  const printWindow = new BrowserWindow({
-    width: 980,
-    height: 900,
-    title: "Cari Hesap Dökümü",
-    autoHideMenuBar: true,
-    show: false,
-    webPreferences: buildWebPreferences()
-  });
-
-  printWindow.loadURL(parsed.toString());
-
-  printWindow.once("ready-to-show", () => {
-    printWindow.show();
-  });
-
-  printWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
-    if (isLocalPrintUrl(nextUrl)) {
-      createPrintWindow(nextUrl);
-      return { action: "deny" };
-    }
-    if (isLocalAppUrl(nextUrl)) {
-      return { action: "deny" };
-    }
-    shell.openExternal(nextUrl);
-    return { action: "deny" };
-  });
-}
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1360,
@@ -331,19 +158,17 @@ function createWindow() {
     minHeight: 640,
     title: "Tahsilat Takip",
     autoHideMenuBar: true,
-    webPreferences: buildWebPreferences()
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
   });
 
   mainWindow.loadURL(SERVER_URL);
 
+  // Döküm sayfasını varsayılan tarayıcıda aç — yazdırma orada güvenilir çalışır.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isLocalPrintUrl(url)) {
-      createPrintWindow(url);
-      return { action: "deny" };
-    }
-    if (isLocalAppUrl(url)) {
-      return { action: "deny" };
-    }
     shell.openExternal(url);
     return { action: "deny" };
   });
@@ -377,15 +202,6 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
-    ipcMain.handle("desktop-print", async (event) => printWebContents(event.sender));
-    ipcMain.handle("desktop-close-window", (event) => {
-      const window = BrowserWindow.fromWebContents(event.sender);
-      if (window && !window.isDestroyed()) {
-        window.close();
-      }
-      return { ok: true };
-    });
-
     try {
       await startBackend();
       createWindow();

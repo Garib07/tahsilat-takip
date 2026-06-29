@@ -45,12 +45,8 @@
     },
     "files": [
       "electron/main.mjs",
-      "electron/preload.cjs",
       "electron/empty-database.json",
       "package.json"
-    ],
-    "asarUnpack": [
-      "electron/preload.cjs"
     ],
     "extraResources": [
       {
