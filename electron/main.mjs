@@ -172,12 +172,46 @@ function isLocalAppUrl(url) {
   }
 }
 
+function waitForPrintReady(webContents) {
+  return webContents.executeJavaScript(`
+    new Promise((resolve) => {
+      const done = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(done).catch(done);
+      } else {
+        done();
+      }
+    })
+  `);
+}
+
+async function triggerElectronPrint(printWindow) {
+  if (printWindow.isDestroyed()) return;
+
+  try {
+    await waitForPrintReady(printWindow.webContents);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    if (printWindow.isDestroyed()) return;
+    await printWindow.webContents.print({
+      silent: false,
+      printBackground: true
+    });
+  } catch (error) {
+    console.error("Yazdirma basarisiz:", error);
+  }
+}
+
 function createPrintWindow(url) {
+  const parsed = new URL(url);
+  const shouldAutoPrint = parsed.searchParams.get("print") === "1";
+  parsed.searchParams.delete("print");
+
   const printWindow = new BrowserWindow({
     width: 980,
     height: 900,
     title: "Cari Hesap Dökümü",
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -185,7 +219,11 @@ function createPrintWindow(url) {
     }
   });
 
-  printWindow.loadURL(url);
+  printWindow.once("ready-to-show", () => {
+    printWindow.show();
+  });
+
+  printWindow.loadURL(parsed.toString());
 
   printWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
     if (isLocalPrintUrl(nextUrl)) {
@@ -198,6 +236,12 @@ function createPrintWindow(url) {
     shell.openExternal(nextUrl);
     return { action: "deny" };
   });
+
+  if (shouldAutoPrint) {
+    printWindow.webContents.once("did-finish-load", () => {
+      void triggerElectronPrint(printWindow);
+    });
+  }
 }
 
 function createWindow() {
