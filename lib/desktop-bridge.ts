@@ -1,6 +1,6 @@
 export type DesktopPrintResult = {
   ok: boolean;
-  fallback?: "pdf";
+  path?: string;
   error?: string;
 };
 
@@ -14,6 +14,10 @@ declare global {
   interface Window {
     tahsilatDesktop?: TahsilatDesktopBridge;
   }
+}
+
+export function isElectronApp() {
+  return typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
 }
 
 export function isDesktopBridgeAvailable() {

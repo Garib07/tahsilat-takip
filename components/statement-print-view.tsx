@@ -5,6 +5,7 @@ import { StatementPrintDocument } from "@/components/statement-print-document";
 import {
   closeDesktopWindow,
   isDesktopBridgeAvailable,
+  isElectronApp,
   printFromDesktopBridge
 } from "@/lib/desktop-bridge";
 import { OfficeProfile, StatementReport } from "@/lib/types";
@@ -28,31 +29,44 @@ export function StatementPrintView({
   autoPrint?: boolean;
 }) {
   const [printError, setPrintError] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const handlePrint = useCallback(async () => {
-    setPrintError(null);
-    await waitForPrintLayout();
+    if (printing) return;
 
-    if (isDesktopBridgeAvailable()) {
-      const result = await printFromDesktopBridge();
-      if (result?.ok) {
-        if (result.fallback === "pdf") {
-          setPrintError("Yazıcı penceresi açılamadı; PDF dosyası açıldı. Oradan yazdırın.");
+    setPrintError(null);
+    setPrinting(true);
+
+    try {
+      await waitForPrintLayout();
+
+      if (isDesktopBridgeAvailable()) {
+        const result = await printFromDesktopBridge();
+        if (result?.ok) {
+          return;
+        }
+
+        if (result?.error && result.error !== "Kayıt iptal edildi.") {
+          setPrintError(result.error);
         }
         return;
       }
 
-      if (result?.error) {
-        setPrintError(result.error);
+      if (isElectronApp()) {
+        setPrintError(
+          "Yazdırma köprüsü yüklenemedi. Tahsilat-Takip-Kurulum-Olustur.bat ile uygulamayı yeniden kurun."
+        );
+        return;
       }
-      return;
-    }
 
-    window.print();
-  }, []);
+      window.print();
+    } finally {
+      setPrinting(false);
+    }
+  }, [printing]);
 
   useEffect(() => {
-    if (!autoPrint || isDesktopBridgeAvailable()) return;
+    if (!autoPrint || isElectronApp()) return;
 
     let cancelled = false;
 
@@ -78,9 +92,10 @@ export function StatementPrintView({
           <button
             type="button"
             onClick={() => void handlePrint()}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            disabled={printing}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            Yazdır / PDF Kaydet
+            {printing ? "PDF hazırlanıyor..." : "Yazdır / PDF Kaydet"}
           </button>
           <button
             type="button"
@@ -90,7 +105,7 @@ export function StatementPrintView({
             Kapat
           </button>
         </div>
-        {printError ? <p className="text-xs text-rose-700">{printError}</p> : null}
+        {printError ? <p className="max-w-md text-right text-xs text-rose-700">{printError}</p> : null}
       </div>
 
       <StatementPrintDocument reports={reports} office={office} />

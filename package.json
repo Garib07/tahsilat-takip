@@ -49,6 +49,9 @@
       "electron/empty-database.json",
       "package.json"
     ],
+    "asarUnpack": [
+      "electron/preload.cjs"
+    ],
     "extraResources": [
       {
         "from": ".next/standalone",

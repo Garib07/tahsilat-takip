@@ -3,10 +3,27 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const preloadPath = path.join(__dirname, "preload.cjs");
+
+function resolvePreloadPath() {
+  const candidates = [
+    path.join(__dirname, "preload.cjs"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "electron", "preload.cjs"),
+    path.join(app.getAppPath(), "electron", "preload.cjs")
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  console.error("Preload script bulunamadi.");
+  return path.join(__dirname, "preload.cjs");
+}
+
 const isDev = process.env.ELECTRON_DEV === "1";
 const isPackaged = app.isPackaged;
 const SERVER_PORT = isDev ? "3000" : "3847";
@@ -178,7 +195,7 @@ function buildWebPreferences() {
     contextIsolation: true,
     nodeIntegration: false,
     sandbox: true,
-    preload: preloadPath
+    preload: resolvePreloadPath()
   };
 }
 
@@ -222,9 +239,9 @@ function waitForPrintReady(webContents) {
   `);
 }
 
-async function printWebContents(webContents) {
-  const printWindow = BrowserWindow.fromWebContents(webContents);
-  if (!printWindow || printWindow.isDestroyed()) {
+async function exportStatementPdf(webContents) {
+  const browserWindow = BrowserWindow.fromWebContents(webContents);
+  if (!browserWindow || browserWindow.isDestroyed()) {
     return { ok: false, error: "Yazdırma penceresi bulunamadı." };
   }
 
@@ -234,51 +251,48 @@ async function printWebContents(webContents) {
   }
 
   await waitForPrintReady(webContents);
-  printWindow.show();
-  printWindow.focus();
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  browserWindow.show();
+  browserWindow.focus();
 
   if (webContents.isDestroyed()) {
     return { ok: false, error: "Yazdırma penceresi kapandı." };
   }
 
-  try {
-    await webContents.print({
-      silent: false,
-      printBackground: true
-    });
-    return { ok: true };
-  } catch (error) {
-    try {
-      const pdf = await webContents.printToPDF({
-        printBackground: true,
-        pageSize: "A4",
-        margins: { marginType: "default" }
-      });
-      const tempPath = path.join(app.getPath("temp"), `cari-dokum-${Date.now()}.pdf`);
-      fs.writeFileSync(tempPath, pdf);
-      await shell.openPath(tempPath);
-      return { ok: true, fallback: "pdf" };
-    } catch (fallbackError) {
-      const message =
-        fallbackError instanceof Error
-          ? fallbackError.message
-          : error instanceof Error
-            ? error.message
-            : "Yazdırma başarısız.";
-      return { ok: false, error: message };
+  const pdfBuffer = await webContents.printToPDF({
+    printBackground: true,
+    pageSize: "A4",
+    margins: {
+      marginType: "default"
     }
+  });
+
+  const { canceled, filePath } = await dialog.showSaveDialog(browserWindow, {
+    title: "Cari Hesap Dökümü Kaydet",
+    defaultPath: path.join(app.getPath("documents"), `cari-dokum-${Date.now()}.pdf`),
+    filters: [{ name: "PDF", extensions: ["pdf"] }]
+  });
+
+  if (canceled || !filePath) {
+    return { ok: false, error: "Kayıt iptal edildi." };
+  }
+
+  fs.writeFileSync(filePath, pdfBuffer);
+  await shell.openPath(filePath);
+  return { ok: true, path: filePath };
+}
+
+async function printWebContents(webContents) {
+  try {
+    return await exportStatementPdf(webContents);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "PDF oluşturulamadı."
+    };
   }
 }
 
-async function triggerElectronPrint(printWindow) {
-  if (printWindow.isDestroyed()) return;
-  await printWebContents(printWindow.webContents);
-}
-
-function createPrintWindow(url) {
   const parsed = new URL(url);
-  const shouldAutoPrint = parsed.searchParams.get("print") === "1";
   parsed.searchParams.delete("print");
 
   const printWindow = new BrowserWindow({
@@ -292,11 +306,9 @@ function createPrintWindow(url) {
 
   printWindow.loadURL(parsed.toString());
 
-  if (!shouldAutoPrint) {
-    printWindow.once("ready-to-show", () => {
-      printWindow.show();
-    });
-  }
+  printWindow.once("ready-to-show", () => {
+    printWindow.show();
+  });
 
   printWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
     if (isLocalPrintUrl(nextUrl)) {
@@ -309,12 +321,6 @@ function createPrintWindow(url) {
     shell.openExternal(nextUrl);
     return { action: "deny" };
   });
-
-  if (shouldAutoPrint) {
-    printWindow.webContents.once("did-finish-load", () => {
-      void triggerElectronPrint(printWindow);
-    });
-  }
 }
 
 function createWindow() {
