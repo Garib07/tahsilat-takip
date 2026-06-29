@@ -151,6 +151,55 @@ async function startBackend() {
   await waitForServer(SERVER_URL);
 }
 
+function isLocalPrintUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return (
+      (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost") &&
+      parsed.pathname.startsWith("/reports/print")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isLocalAppUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+function createPrintWindow(url) {
+  const printWindow = new BrowserWindow({
+    width: 980,
+    height: 900,
+    title: "Cari Hesap Dökümü",
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  printWindow.loadURL(url);
+
+  printWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
+    if (isLocalPrintUrl(nextUrl)) {
+      createPrintWindow(nextUrl);
+      return { action: "deny" };
+    }
+    if (isLocalAppUrl(nextUrl)) {
+      return { action: "deny" };
+    }
+    shell.openExternal(nextUrl);
+    return { action: "deny" };
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1360,
@@ -169,6 +218,13 @@ function createWindow() {
   mainWindow.loadURL(SERVER_URL);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isLocalPrintUrl(url)) {
+      createPrintWindow(url);
+      return { action: "deny" };
+    }
+    if (isLocalAppUrl(url)) {
+      return { action: "deny" };
+    }
     shell.openExternal(url);
     return { action: "deny" };
   });

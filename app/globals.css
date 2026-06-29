@@ -52,7 +52,8 @@ body {
   }
 
   aside,
-  .no-print {
+  .no-print,
+  .app-shell-mobile-bar {
     display: none !important;
   }
 

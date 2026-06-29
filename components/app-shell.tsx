@@ -37,7 +37,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+      <div className="app-shell-mobile-bar no-print fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -68,7 +68,7 @@ export function AppShell({
         </div>
       ) : null}
 
-      <main className="flex-1 overflow-auto pt-[57px] md:pt-0">
+      <main className="flex-1 overflow-auto pt-[57px] print:pt-0 md:pt-0">
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">{children}</div>
       </main>
     </div>
