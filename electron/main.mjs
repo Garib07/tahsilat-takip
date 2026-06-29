@@ -3,9 +3,10 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const preloadPath = path.join(__dirname, "preload.cjs");
 const isDev = process.env.ELECTRON_DEV === "1";
 const isPackaged = app.isPackaged;
 const SERVER_PORT = isDev ? "3000" : "3847";
@@ -172,6 +173,42 @@ function isLocalAppUrl(url) {
   }
 }
 
+function buildWebPreferences() {
+  return {
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true,
+    preload: preloadPath
+  };
+}
+
+async function waitForPrintContent(webContents, timeoutMs = 20000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (webContents.isDestroyed()) {
+      return false;
+    }
+
+    try {
+      const ready = await webContents.executeJavaScript(`
+        (() => {
+          const doc = document.querySelector(".print-document");
+          const rows = document.querySelectorAll(".statement-table tbody tr");
+          return Boolean(doc && doc.offsetHeight > 120 && rows.length > 0);
+        })()
+      `);
+      if (ready) return true;
+    } catch {
+      // Sayfa hâlâ yükleniyor.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  return false;
+}
+
 function waitForPrintReady(webContents) {
   return webContents.executeJavaScript(`
     new Promise((resolve) => {
@@ -185,20 +222,58 @@ function waitForPrintReady(webContents) {
   `);
 }
 
-async function triggerElectronPrint(printWindow) {
-  if (printWindow.isDestroyed()) return;
+async function printWebContents(webContents) {
+  const printWindow = BrowserWindow.fromWebContents(webContents);
+  if (!printWindow || printWindow.isDestroyed()) {
+    return { ok: false, error: "Yazdırma penceresi bulunamadı." };
+  }
+
+  const ready = await waitForPrintContent(webContents);
+  if (!ready) {
+    return { ok: false, error: "Ekstre içeriği hazır değil." };
+  }
+
+  await waitForPrintReady(webContents);
+  printWindow.show();
+  printWindow.focus();
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  if (webContents.isDestroyed()) {
+    return { ok: false, error: "Yazdırma penceresi kapandı." };
+  }
 
   try {
-    await waitForPrintReady(printWindow.webContents);
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    if (printWindow.isDestroyed()) return;
-    await printWindow.webContents.print({
+    await webContents.print({
       silent: false,
       printBackground: true
     });
+    return { ok: true };
   } catch (error) {
-    console.error("Yazdirma basarisiz:", error);
+    try {
+      const pdf = await webContents.printToPDF({
+        printBackground: true,
+        pageSize: "A4",
+        margins: { marginType: "default" }
+      });
+      const tempPath = path.join(app.getPath("temp"), `cari-dokum-${Date.now()}.pdf`);
+      fs.writeFileSync(tempPath, pdf);
+      await shell.openPath(tempPath);
+      return { ok: true, fallback: "pdf" };
+    } catch (fallbackError) {
+      const message =
+        fallbackError instanceof Error
+          ? fallbackError.message
+          : error instanceof Error
+            ? error.message
+            : "Yazdırma başarısız.";
+      return { ok: false, error: message };
+    }
   }
+}
+
+async function triggerElectronPrint(printWindow) {
+  if (printWindow.isDestroyed()) return;
+  await printWebContents(printWindow.webContents);
 }
 
 function createPrintWindow(url) {
@@ -212,18 +287,16 @@ function createPrintWindow(url) {
     title: "Cari Hesap Dökümü",
     autoHideMenuBar: true,
     show: false,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  });
-
-  printWindow.once("ready-to-show", () => {
-    printWindow.show();
+    webPreferences: buildWebPreferences()
   });
 
   printWindow.loadURL(parsed.toString());
+
+  if (!shouldAutoPrint) {
+    printWindow.once("ready-to-show", () => {
+      printWindow.show();
+    });
+  }
 
   printWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
     if (isLocalPrintUrl(nextUrl)) {
@@ -252,11 +325,7 @@ function createWindow() {
     minHeight: 640,
     title: "Tahsilat Takip",
     autoHideMenuBar: true,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
+    webPreferences: buildWebPreferences()
   });
 
   mainWindow.loadURL(SERVER_URL);
@@ -302,6 +371,15 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
+    ipcMain.handle("desktop-print", async (event) => printWebContents(event.sender));
+    ipcMain.handle("desktop-close-window", (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (window && !window.isDestroyed()) {
+        window.close();
+      }
+      return { ok: true };
+    });
+
     try {
       await startBackend();
       createWindow();
