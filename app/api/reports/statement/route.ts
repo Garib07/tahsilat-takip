@@ -1,6 +1,6 @@
 import { buildStatementExportRows } from "@/lib/reports/statement-report";
 import { csvResponse, rowsToCsv } from "@/lib/reports/spreadsheet";
-import { formatIncludedYearsLabel, parseYearsParam } from "@/lib/reports/years";
+import { parseYearsParam } from "@/lib/reports/years";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,11 @@ export async function GET(request: Request) {
     const csv = rowsToCsv(rows);
     const asExcel = format !== "csv";
     const extension = asExcel ? "xls" : "csv";
-    const yearLabel = formatIncludedYearsLabel(includedYears ?? [period]).replace(/\s+/g, "");
+    const years = includedYears ?? [period];
+    const yearLabel =
+      years.length === 1
+        ? String(years[0])
+        : `${years[0]}-${years[years.length - 1]}`;
 
     return csvResponse(csv, `cari-ekstre-${yearLabel}.${extension}`, asExcel);
   } catch (error) {

@@ -20,13 +20,21 @@ export function rowsToCsv(rows: Record<string, unknown>[]) {
   return lines.join("\n");
 }
 
+function toAsciiFilename(filename: string) {
+  return filename
+    .replace(/\u2013|\u2014/g, "-")
+    .replace(/[^\x20-\x7E]/g, "_");
+}
+
 export function csvResponse(csv: string, filename: string, asExcel = false) {
+  const safeFilename = toAsciiFilename(filename);
+
   return new Response(`\uFEFF${csv}`, {
     headers: {
       "Content-Type": asExcel
         ? "application/vnd.ms-excel; charset=utf-8"
         : "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`
+      "Content-Disposition": `attachment; filename="${safeFilename}"`
     }
   });
 }
