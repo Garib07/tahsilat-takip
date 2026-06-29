@@ -12,7 +12,7 @@ const buttonClass =
   "rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50";
 
 const printButtonClass =
-  "inline-flex items-center rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800";
+  "relative z-10 inline-flex shrink-0 items-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
 
 export function CustomerReportActions({
   customerId,
@@ -101,20 +101,25 @@ export function CustomerReportActions({
         selectedYears={selectedYears}
         onChange={setSelectedYears}
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="relative z-10 flex flex-wrap gap-2">
         <a
           href={excelUrl}
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+          className="inline-flex shrink-0 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
         >
           Excel İndir
         </a>
         <a
           href={buildStatementExportUrl(period, customerIds, "csv", years)}
-          className={buttonClass}
+          className={`${buttonClass} inline-flex shrink-0 items-center px-3 py-2`}
         >
           CSV
         </a>
-        <a href={printUrl} target="_blank" rel="noopener noreferrer" className={printButtonClass}>
+        <a
+          href={printUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={printButtonClass}
+        >
           Cari Hesap Dökümü
         </a>
       </div>
