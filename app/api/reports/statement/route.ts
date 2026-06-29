@@ -1,5 +1,6 @@
 import { buildStatementExportRows } from "@/lib/reports/statement-report";
-import { csvResponse, rowsToCsv } from "@/lib/reports/spreadsheet";
+import { buildStatementExcelHtml } from "@/lib/reports/statement-excel-html";
+import { csvResponse, excelHtmlResponse, rowsToCsv } from "@/lib/reports/spreadsheet";
 import { parseYearsParam } from "@/lib/reports/years";
 
 export const runtime = "nodejs";
@@ -19,22 +20,27 @@ export async function GET(request: Request) {
       return Response.json({ error: "Geçerli bir dönem seçiniz." }, { status: 400 });
     }
 
-    const { rows } = await buildStatementExportRows(period, customerIds, includedYears);
+    const { reports, office, rows } = await buildStatementExportRows(period, customerIds, includedYears);
 
-    if (!rows.length) {
+    if (!reports.length) {
       return Response.json({ error: "Dışa aktarılacak ekstre bulunamadı." }, { status: 404 });
     }
 
-    const csv = rowsToCsv(rows);
-    const asExcel = format !== "csv";
-    const extension = asExcel ? "xls" : "csv";
     const years = includedYears ?? [period];
     const yearLabel =
       years.length === 1
         ? String(years[0])
         : `${years[0]}-${years[years.length - 1]}`;
 
-    return csvResponse(csv, `cari-ekstre-${yearLabel}.${extension}`, asExcel);
+    if (format === "csv") {
+      if (!rows.length) {
+        return Response.json({ error: "Dışa aktarılacak ekstre bulunamadı." }, { status: 404 });
+      }
+      return csvResponse(rowsToCsv(rows), `cari-ekstre-${yearLabel}.csv`, false);
+    }
+
+    const html = buildStatementExcelHtml(reports, office);
+    return excelHtmlResponse(html, `cari-ekstre-${yearLabel}.xls`);
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Rapor oluşturulamadı." },

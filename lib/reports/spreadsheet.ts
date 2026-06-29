@@ -26,6 +26,17 @@ function toAsciiFilename(filename: string) {
     .replace(/[^\x20-\x7E]/g, "_");
 }
 
+export function excelHtmlResponse(html: string, filename: string) {
+  const safeFilename = toAsciiFilename(filename);
+
+  return new Response(`\uFEFF${html}`, {
+    headers: {
+      "Content-Type": "application/vnd.ms-excel; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${safeFilename}"`
+    }
+  });
+}
+
 export function csvResponse(csv: string, filename: string, asExcel = false) {
   const safeFilename = toAsciiFilename(filename);
 
