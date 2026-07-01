@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { CustomerEditButton } from "@/components/customer-edit-button";
 import { CustomerReportActions } from "@/components/customer-report-actions";
+import { CustomerSearchInput } from "@/components/customer-search-input";
 import { Card } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { formatActivePeriods } from "@/lib/customer-periods";
+import { matchesCustomerSearch } from "@/lib/customer-search";
 import { getCustomerFeeForYear } from "@/lib/fees";
 import { Customer } from "@/lib/types";
 
@@ -16,8 +19,25 @@ export function CustomersTable({
   customers: Customer[];
   period: number;
 }) {
+  const [search, setSearch] = useState("");
+
+  const filteredCustomers = useMemo(
+    () => customers.filter((customer) => matchesCustomerSearch(customer, search)),
+    [customers, search]
+  );
+
   return (
     <Card>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+        <p className="text-sm text-slate-500">
+          {filteredCustomers.length} / {customers.length} cari
+        </p>
+        <CustomerSearchInput
+          value={search}
+          onChange={setSearch}
+          className="w-full min-w-[14rem] sm:w-72"
+        />
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
@@ -34,7 +54,7 @@ export function CustomersTable({
             </tr>
           </thead>
           <tbody>
-            {customers.map((customer) => (
+            {filteredCustomers.map((customer) => (
               <tr key={customer.id} className="border-t border-slate-100 hover:bg-slate-50/80">
                 <td className="px-6 py-3 font-mono text-xs text-slate-600">{customer.code || "—"}</td>
                 <td className="px-6 py-3">
@@ -85,6 +105,12 @@ export function CustomersTable({
                   <td colSpan={9} className="px-6 py-8 text-center text-slate-500">
                   {period} döneminde cari kaydı yok. Firma Yönetimi&apos;nden dönemi kontrol edin veya yeni
                   cari ekleyin.
+                </td>
+              </tr>
+            ) : !filteredCustomers.length ? (
+              <tr>
+                <td colSpan={9} className="px-6 py-8 text-center text-slate-500">
+                  Aramanızla eşleşen cari bulunamadı.
                 </td>
               </tr>
             ) : null}
