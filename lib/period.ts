@@ -13,6 +13,14 @@ export function resolvePeriodMonth(periodYear: number) {
   return today.getFullYear() === periodYear ? today.getMonth() + 1 : 12;
 }
 
+export function parseDashboardMonth(value: string | undefined, period: number) {
+  const month = Number(value);
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    return resolvePeriodMonth(period);
+  }
+  return month;
+}
+
 export function isDateInPeriod(date: string, periodYear: number) {
   const parsed = new Date(`${date}T00:00:00`);
   return !Number.isNaN(parsed.getTime()) && parsed.getFullYear() === periodYear;

@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { CustomerCreateButton } from "@/components/customer-create-button";
+import { DashboardMonthSummary } from "@/components/dashboard-month-summary";
 import { PeriodBadge } from "@/components/period-badge";
 import { Card, PageHeader, StatCard } from "@/components/ui";
 import { formatCurrency, monthNames } from "@/lib/format";
-import { formatPeriodLabel } from "@/lib/period";
+import { formatPeriodLabel, parseDashboardMonth } from "@/lib/period";
 import { getNextCustomerCode, getPeriodContext, getSummary } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const { period, month } = await getPeriodContext();
+export default async function DashboardPage({
+  searchParams
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const { period } = await getPeriodContext();
+  const params = await searchParams;
+  const month = parseDashboardMonth(params.month, period);
   const [summary, nextCode] = await Promise.all([
     getSummary({ year: period, month }),
     getNextCustomerCode()
@@ -20,6 +27,8 @@ export default async function DashboardPage() {
   );
   const totalCharges = summary.reduce((total, row) => total + row.totalCharges, 0);
   const totalPayments = summary.reduce((total, row) => total + row.totalPayments, 0);
+  const monthlyCharges = summary.reduce((total, row) => total + row.selectedMonthCharge, 0);
+  const monthlyPayments = summary.reduce((total, row) => total + row.selectedMonthPayments, 0);
 
   return (
     <>
@@ -31,7 +40,15 @@ export default async function DashboardPage() {
             <PeriodBadge period={period} />
             <CustomerCreateButton period={period} nextCode={nextCode} label="Cari Kart" />
           </div>
-        }      />
+        }
+      />
+
+      <DashboardMonthSummary
+        period={period}
+        month={month}
+        monthlyCharges={monthlyCharges}
+        monthlyPayments={monthlyPayments}
+      />
 
       <section className="mb-8 grid gap-4 md:grid-cols-3">
         <StatCard title="Toplam Alacak" value={formatCurrency(totalReceivable)} tone="danger" />
