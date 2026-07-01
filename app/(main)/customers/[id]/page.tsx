@@ -61,6 +61,8 @@ export default async function CustomerDetailPage({
         defaultMonthlyFee={defaultMonthlyFee}
         carryForward={carryForward}
         openingBalance={openingBalance}
+        openedAt={customer.openedAt}
+        closedAt={customer.closedAt}
       />
     </>
   );

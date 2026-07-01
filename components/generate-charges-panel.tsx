@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { generateMonthlyChargesAction } from "@/lib/actions";
 import { isMonthlyCharge } from "@/lib/charges";
-import { isMonthlyChargeAllowed } from "@/lib/customer-closure";
+import { isMonthlyChargeAllowed, listAllowedChargeMonths } from "@/lib/customer-closure";
 import { getCustomerFeeForYear } from "@/lib/fees";
 import { formatCurrency, monthNames, formatDateLabel } from "@/lib/format";
 import { Charge, Customer } from "@/lib/types";
@@ -60,6 +60,7 @@ export function GenerateChargesPanel({
     filteredCustomers.every((customer) => selectedIds.has(customer.id));
 
   function toggleMonth(month: number) {
+    if (!isMonthSelectable(month)) return;
     setSelectedMonths((current) => toggleInList(current, month).sort((a, b) => a - b));
   }
 
@@ -92,8 +93,20 @@ export function GenerateChargesPanel({
     });
   }
 
+  function isMonthSelectable(month: number) {
+    const pool = customers.filter((customer) => selectedIds.has(customer.id));
+    const targets = pool.length ? pool : customers;
+    return targets.some((customer) =>
+      isMonthlyChargeAllowed(customer.closedAt, period, month, customer.openedAt)
+    );
+  }
+
   function selectAllMonths() {
-    setSelectedMonths(Array.from({ length: 12 }, (_, index) => index + 1));
+    setSelectedMonths(
+      Array.from({ length: 12 }, (_, index) => index + 1).filter((month) =>
+        isMonthSelectable(month)
+      )
+    );
   }
 
   function clearAllMonths() {
@@ -188,18 +201,22 @@ export function GenerateChargesPanel({
             {monthNames.map((name, index) => {
               const month = index + 1;
               const checked = selectedMonths.includes(month);
+              const selectable = isMonthSelectable(month);
               return (
                 <label
                   key={name}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
-                    checked
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                    !selectable
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400"
+                      : checked
+                        ? "cursor-pointer border-slate-900 bg-slate-900 text-white"
+                        : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
+                    disabled={!selectable}
                     onChange={() => toggleMonth(month)}
                     className="sr-only"
                   />
@@ -295,7 +312,7 @@ export function GenerateChargesPanel({
                         {!selectedMonths.length ? (
                           "Ay seçin"
                         ) : blockedMonths && !allowedMonths ? (
-                          <span className="text-amber-700">Kapanış tarihi nedeniyle yok</span>
+                          <span className="text-amber-700">Açılış/kapanış nedeniyle yok</span>
                         ) : pendingMonths ? (
                           <>
                             <span className="text-emerald-700">{pendingMonths} yeni</span>

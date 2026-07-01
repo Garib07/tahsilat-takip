@@ -589,6 +589,20 @@ export async function createCharge(input: {
 
   requireCustomerInPeriod(customer, year);
 
+  const normalizedCustomer = normalizeCustomer(customer);
+  if (
+    !isMonthlyChargeAllowed(
+      normalizedCustomer.closedAt,
+      year,
+      month,
+      normalizedCustomer.openedAt
+    )
+  ) {
+    throw new Error(
+      `${monthNames[month - 1]} ayı carinin açılış veya kapanış tarihi nedeniyle tahakkuka kapalıdır.`
+    );
+  }
+
   const description = String(input.description ?? "").trim();
   if (!description) {
     throw new Error("Tahakkuk açıklaması zorunludur.");

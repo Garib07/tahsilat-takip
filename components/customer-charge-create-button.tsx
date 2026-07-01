@@ -16,13 +16,14 @@ import { useRouter } from "next/navigation";
 import { createChargeAction, upsertCarryForwardAction } from "@/lib/actions";
 import { Modal } from "@/components/modal";
 import { isDevirService, serviceChargePresets } from "@/lib/charges";
+import { isMonthlyChargeAllowed, listAllowedChargeMonths, resolveDefaultChargeMonth } from "@/lib/customer-closure";
 import {
   formatAmountWithCents,
   getAccountingFeeDescription,
   monthNames,
   sanitizeAmountTyping
 } from "@/lib/format";
-import { resolvePeriodMonth, getDefaultChargeDate } from "@/lib/period";
+import { getDefaultChargeDate } from "@/lib/period";
 
 type ChargeMode = "monthly" | "service";
 
@@ -34,6 +35,9 @@ function toggleInList(list: number[], value: number) {
 
 const MonthSelector = memo(function MonthSelector({
   mode,
+  period,
+  openedAt,
+  closedAt,
   selectedMonths,
   existingMonthSet,
   onToggleMonth,
@@ -43,6 +47,9 @@ const MonthSelector = memo(function MonthSelector({
   updateMonthCount
 }: {
   mode: ChargeMode;
+  period: number;
+  openedAt: string;
+  closedAt: string;
   selectedMonths: number[];
   existingMonthSet: Set<number>;
   onToggleMonth: (month: number) => void;
@@ -51,6 +58,11 @@ const MonthSelector = memo(function MonthSelector({
   newMonthCount: number;
   updateMonthCount: number;
 }) {
+  const isMonthAllowed = useCallback(
+    (month: number) => isMonthlyChargeAllowed(closedAt, period, month, openedAt),
+    [closedAt, openedAt, period]
+  );
+
   return (
     <section>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -61,7 +73,7 @@ const MonthSelector = memo(function MonthSelector({
             onClick={onSelectAll}
             className="rounded-md border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50"
           >
-            Tüm aylar
+            Uygun aylar
           </button>
           <button
             type="button"
@@ -77,28 +89,34 @@ const MonthSelector = memo(function MonthSelector({
           const month = index + 1;
           const checked = selectedMonths.includes(month);
           const hasMonthlyFee = existingMonthSet.has(month);
+          const allowed = isMonthAllowed(month);
 
           return (
             <label
               key={name}
-              className={`flex cursor-pointer flex-col rounded-lg border px-2 py-2 text-sm transition ${
-                checked
-                  ? mode === "monthly"
-                    ? "border-rose-600 bg-rose-50 text-rose-900"
-                    : "border-violet-600 bg-violet-50 text-violet-900"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              className={`flex flex-col rounded-lg border px-2 py-2 text-sm transition ${
+                !allowed
+                  ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400"
+                  : checked
+                    ? mode === "monthly"
+                      ? "cursor-pointer border-rose-600 bg-rose-50 text-rose-900"
+                      : "cursor-pointer border-violet-600 bg-violet-50 text-violet-900"
+                    : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
               <span className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={checked}
-                  onChange={() => onToggleMonth(month)}
-                  className="rounded border-slate-300"
+                  disabled={!allowed}
+                  onChange={() => allowed && onToggleMonth(month)}
+                  className="rounded border-slate-300 disabled:opacity-40"
                 />
                 {name}
               </span>
-              {mode === "monthly" && hasMonthlyFee ? (
+              {!allowed ? (
+                <span className="mt-1 pl-6 text-xs text-slate-400">Açılış/kapanış dışı</span>
+              ) : mode === "monthly" && hasMonthlyFee ? (
                 <span className="mt-1 pl-6 text-xs text-slate-400">Aylık ücret var — güncellenir</span>
               ) : null}
             </label>
@@ -168,19 +186,25 @@ function ChargeCreateModal({
   period,
   defaultAmount,
   existingMonthlyMonths,
+  openedAt,
+  closedAt,
   onClose
 }: {
   customerId: string;
   period: number;
   defaultAmount: number;
   existingMonthlyMonths: number[];
+  openedAt: string;
+  closedAt: string;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<ChargeMode>("monthly");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([resolvePeriodMonth(period)]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(() => [
+    resolveDefaultChargeMonth(period, openedAt, closedAt)
+  ]);
   const [amountSeed, setAmountSeed] = useState(() => formatAmountWithCents(String(defaultAmount)));
   const amountRef = useRef(amountSeed);
   const [description, setDescription] = useState(serviceChargePresets[0]);
@@ -198,13 +222,21 @@ function ChargeCreateModal({
   const newMonthCount = selectedMonths.filter((month) => !existingMonthSet.has(month)).length;
   const updateMonthCount = selectedMonths.filter((month) => existingMonthSet.has(month)).length;
 
+  const isMonthAllowed = useCallback(
+    (month: number) => isMonthlyChargeAllowed(closedAt, period, month, openedAt),
+    [closedAt, openedAt, period]
+  );
+
   const handleToggleMonth = useCallback(
-    (month: number) => setSelectedMonths((current) => toggleInList(current, month)),
-    []
+    (month: number) => {
+      if (!isMonthAllowed(month)) return;
+      setSelectedMonths((current) => toggleInList(current, month));
+    },
+    [isMonthAllowed]
   );
   const handleSelectAll = useCallback(
-    () => setSelectedMonths(Array.from({ length: 12 }, (_, index) => index + 1)),
-    []
+    () => setSelectedMonths(listAllowedChargeMonths(period, openedAt, closedAt)),
+    [closedAt, openedAt, period]
   );
   const handleClearAll = useCallback(() => setSelectedMonths([]), []);
 
@@ -232,11 +264,12 @@ function ChargeCreateModal({
   function switchMode(nextMode: ChargeMode) {
     setMode(nextMode);
     setMessage("");
+    const defaultMonth = resolveDefaultChargeMonth(period, openedAt, closedAt);
     if (nextMode === "monthly") {
-      setSelectedMonths([resolvePeriodMonth(period)]);
+      setSelectedMonths([defaultMonth]);
       resetAmount(formatAmountWithCents(String(defaultAmount)));
     } else {
-      setSelectedMonths([resolvePeriodMonth(period)]);
+      setSelectedMonths([defaultMonth]);
       resetAmount("");
       setDescription(serviceChargePresets[0]);
       setCustomDescription("");
@@ -255,7 +288,13 @@ function ChargeCreateModal({
     setMessage("");
 
     if (!selectedMonths.length && !isDevirMode) {
-      setMessage("En az bir ay seçiniz.");
+      setMessage("En az bir uygun ay seçiniz.");
+      return;
+    }
+
+    const allowedMonths = selectedMonths.filter((month) => isMonthAllowed(month));
+    if (!isDevirMode && !allowedMonths.length) {
+      setMessage("Seçili aylar carinin açılış veya kapanış tarihi nedeniyle tahakkuka kapalı.");
       return;
     }
 
@@ -286,7 +325,7 @@ function ChargeCreateModal({
             direction: devirDirection
           });
         } else {
-          for (const month of selectedMonths) {
+          for (const month of allowedMonths) {
             if (mode === "monthly") {
               await createChargeAction({
                 customerId,
@@ -445,6 +484,9 @@ function ChargeCreateModal({
         {!isDevirMode ? (
         <MonthSelector
           mode={mode}
+          period={period}
+          openedAt={openedAt}
+          closedAt={closedAt}
           selectedMonths={selectedMonths}
           existingMonthSet={existingMonthSet}
           onToggleMonth={handleToggleMonth}
@@ -534,6 +576,8 @@ export function CustomerChargeCreateButton({
   period,
   defaultAmount,
   existingMonthlyMonths,
+  openedAt = "",
+  closedAt = "",
   open: controlledOpen,
   onOpenChange
 }: {
@@ -541,6 +585,8 @@ export function CustomerChargeCreateButton({
   period: number;
   defaultAmount: number;
   existingMonthlyMonths: number[];
+  openedAt?: string;
+  closedAt?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -568,6 +614,8 @@ export function CustomerChargeCreateButton({
           period={period}
           defaultAmount={defaultAmount}
           existingMonthlyMonths={existingMonthlyMonths}
+          openedAt={openedAt}
+          closedAt={closedAt}
           onClose={() => setOpen(false)}
         />
       ) : null}

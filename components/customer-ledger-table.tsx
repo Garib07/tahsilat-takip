@@ -23,7 +23,9 @@ export function CustomerLedgerTable({
   payments,
   defaultMonthlyFee,
   carryForward,
-  openingBalance
+  openingBalance,
+  openedAt = "",
+  closedAt = ""
 }: {
   customerId: string;
   period: number;
@@ -32,6 +34,8 @@ export function CustomerLedgerTable({
   defaultMonthlyFee: number;
   carryForward: CarryForward | null;
   openingBalance: number;
+  openedAt?: string;
+  closedAt?: string;
 }) {
   const [chargeOpen, setChargeOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -108,6 +112,8 @@ export function CustomerLedgerTable({
             period={period}
             defaultAmount={defaultMonthlyFee}
             existingMonthlyMonths={existingMonthlyMonths}
+            openedAt={openedAt}
+            closedAt={closedAt}
             open={chargeOpen}
             onOpenChange={setChargeOpen}
           />

@@ -24,6 +24,29 @@ export function parseClosureMonth(closedAt: string) {
 
 export const parseOpeningMonth = parseClosureMonth;
 
+export function listAllowedChargeMonths(
+  period: number,
+  openedAt?: string,
+  closedAt?: string
+) {
+  return Array.from({ length: 12 }, (_, index) => index + 1).filter((month) =>
+    isMonthlyChargeAllowed(closedAt, period, month, openedAt)
+  );
+}
+
+export function resolveDefaultChargeMonth(
+  period: number,
+  openedAt?: string,
+  closedAt?: string
+) {
+  const today = new Date();
+  const preferred = today.getFullYear() === period ? today.getMonth() + 1 : 12;
+  if (isMonthlyChargeAllowed(closedAt, period, preferred, openedAt)) {
+    return preferred;
+  }
+  return listAllowedChargeMonths(period, openedAt, closedAt)[0] ?? preferred;
+}
+
 export function validateCustomerContractDates(openedAt: string, closedAt: string) {
   if (openedAt && closedAt && openedAt > closedAt) {
     throw new Error("Açılış tarihi kapanış tarihinden sonra olamaz.");
