@@ -5,6 +5,8 @@ export function normalizeClosedAt(value: unknown): string {
   return raw;
 }
 
+export const normalizeOpenedAt = normalizeClosedAt;
+
 export function parseClosureMonth(closedAt: string) {
   const normalized = normalizeClosedAt(closedAt);
   if (!normalized) return null;
@@ -20,8 +22,27 @@ export function parseClosureMonth(closedAt: string) {
   return { year, month };
 }
 
-/** Kapanış tarihinin bulunduğu ay dahil; sonraki aylar hariç. */
-export function isMonthlyChargeAllowed(closedAt: string | undefined, year: number, month: number) {
+export const parseOpeningMonth = parseClosureMonth;
+
+export function validateCustomerContractDates(openedAt: string, closedAt: string) {
+  if (openedAt && closedAt && openedAt > closedAt) {
+    throw new Error("Açılış tarihi kapanış tarihinden sonra olamaz.");
+  }
+}
+
+/** Açılış ayından önceki aylar hariç; kapanış ayından sonraki aylar hariç. */
+export function isMonthlyChargeAllowed(
+  closedAt: string | undefined,
+  year: number,
+  month: number,
+  openedAt?: string
+) {
+  const opening = parseOpeningMonth(openedAt ?? "");
+  if (opening) {
+    if (year < opening.year) return false;
+    if (year === opening.year && month < opening.month) return false;
+  }
+
   const closure = parseClosureMonth(closedAt ?? "");
   if (!closure) return true;
 

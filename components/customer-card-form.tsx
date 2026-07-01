@@ -44,6 +44,7 @@ function emptyForm(nextCode: string): CustomerCardInput {
     email: "",
     website: "",
     monthlyFee: "",
+    openedAt: "",
     closedAt: ""
   };
 }
@@ -65,6 +66,7 @@ export function customerToCardInput(customer: Customer, period: number): Custome
     email: customer.email,
     website: customer.website,
     monthlyFee: formatAmountWithCents(String(getCustomerFeeForYear(customer, period))),
+    openedAt: customer.openedAt ?? "",
     closedAt: customer.closedAt ?? ""
   };
 }
@@ -280,6 +282,21 @@ export function CustomerCardForm({
               className={inputClass}
               placeholder="5.000,00"
             />
+          </FormRow>
+
+          <FormRow label="Açılış">
+            <div>
+              <input
+                type="date"
+                value={form.openedAt}
+                onChange={(event) => setForm({ ...form, openedAt: event.target.value })}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Sözleşme başlangıç veya açılış tarihi. Girilirse bu tarihten önceki aylar için toplu
+                tahakkuk oluşturulmaz.
+              </p>
+            </div>
           </FormRow>
 
           <FormRow label="Kapanış">

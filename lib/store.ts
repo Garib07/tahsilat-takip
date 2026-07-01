@@ -3,7 +3,7 @@ import { Charge, CarryForward, Customer, CustomerCardInput, Database, OfficeProf
 import { getCustomerFeeForYear, normalizeYearlyFees, parseYearlyFeesInput } from "./fees";
 import { normalizeCharge } from "./charges";
 import { isCustomerActiveInPeriod, normalizeActivePeriods } from "./customer-periods";
-import { normalizeClosedAt, isMonthlyChargeAllowed } from "./customer-closure";
+import { normalizeClosedAt, normalizeOpenedAt, validateCustomerContractDates, isMonthlyChargeAllowed } from "./customer-closure";
 import { getDefaultChargeDate, isDateInPeriod, resolvePeriodMonth } from "./period";
 import { readRawDatabase, writeRawDatabase } from "./storage";
 
@@ -178,6 +178,7 @@ function normalizeCustomer(customer: Customer & { title?: string; period?: numbe
     taxNumber: String(customer.taxNumber ?? "").trim(),
     email: String(customer.email ?? "").trim(),
     website: String(customer.website ?? "").trim(),
+    openedAt: normalizeOpenedAt(customer.openedAt),
     closedAt: normalizeClosedAt(customer.closedAt),
     activePeriods,
     yearlyFees,
@@ -380,6 +381,7 @@ export async function createCustomer(input: {
   taxNumber?: unknown;
   email?: unknown;
   website?: unknown;
+  openedAt?: unknown;
   closedAt?: unknown;
   monthlyFee?: unknown;
   yearlyFees?: unknown;
@@ -390,6 +392,10 @@ export async function createCustomer(input: {
     input.yearlyFees ?? buildLegacyYearlyFees(input.monthlyFee, period)
   );
   const code = String(input.code ?? "").trim() || (await getNextCustomerCode());
+  const openedAt = normalizeOpenedAt(input.openedAt);
+  const closedAt = normalizeClosedAt(input.closedAt);
+  validateCustomerContractDates(openedAt, closedAt);
+
   const customer: Customer = {
     id: randomUUID(),
     code,
@@ -406,7 +412,8 @@ export async function createCustomer(input: {
     taxNumber: String(input.taxNumber ?? "").trim(),
     email: String(input.email ?? "").trim(),
     website: String(input.website ?? "").trim(),
-    closedAt: normalizeClosedAt(input.closedAt),
+    openedAt,
+    closedAt,
     activePeriods: [period],
     yearlyFees,
     monthlyFee: getCustomerFeeForYear({ yearlyFees, monthlyFee: 0 }, period),
@@ -442,6 +449,7 @@ export async function updateCustomer(
       | "taxNumber"
       | "email"
       | "website"
+      | "openedAt"
       | "closedAt"
       | "monthlyFee"
       | "yearlyFees"
@@ -470,7 +478,11 @@ export async function updateCustomer(
   if (input.taxNumber !== undefined) customer.taxNumber = String(input.taxNumber).trim();
   if (input.email !== undefined) customer.email = String(input.email).trim();
   if (input.website !== undefined) customer.website = String(input.website).trim();
+  if (input.openedAt !== undefined) customer.openedAt = normalizeOpenedAt(input.openedAt);
   if (input.closedAt !== undefined) customer.closedAt = normalizeClosedAt(input.closedAt);
+  if (input.openedAt !== undefined || input.closedAt !== undefined) {
+    validateCustomerContractDates(customer.openedAt, customer.closedAt);
+  }
   if (input.yearlyFees !== undefined) {
     customer.yearlyFees = parseYearlyFeesInput(input.yearlyFees);
     customer.monthlyFee = getCustomerFeeForYear(customer, database.office.period);
@@ -510,7 +522,11 @@ export async function updateCustomerFromCard(id: string, input: CustomerCardInpu
   customer.taxNumber = String(input.taxNumber).trim();
   customer.email = String(input.email).trim();
   customer.website = String(input.website).trim();
-  customer.closedAt = normalizeClosedAt(input.closedAt);
+  const openedAt = normalizeOpenedAt(input.openedAt);
+  const closedAt = normalizeClosedAt(input.closedAt);
+  validateCustomerContractDates(openedAt, closedAt);
+  customer.openedAt = openedAt;
+  customer.closedAt = closedAt;
   customer.yearlyFees = [...otherFees, { year: viewPeriod, amount }].sort((a, b) => a.year - b.year);
   customer.monthlyFee = getCustomerFeeForYear(customer, viewPeriod);
 
@@ -735,7 +751,7 @@ export async function generateMonthlyCharges(input: {
 
   for (const customer of customers) {
     for (const month of months) {
-      if (!isMonthlyChargeAllowed(customer.closedAt, year, month)) {
+      if (!isMonthlyChargeAllowed(customer.closedAt, year, month, customer.openedAt)) {
         skippedClosed += 1;
         continue;
       }

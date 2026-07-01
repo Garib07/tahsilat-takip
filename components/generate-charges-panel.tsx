@@ -103,14 +103,14 @@ export function GenerateChargesPanel({
   function pendingCountForCustomer(customer: Customer) {
     return selectedMonths.filter(
       (month) =>
-        isMonthlyChargeAllowed(customer.closedAt, period, month) &&
+        isMonthlyChargeAllowed(customer.closedAt, period, month, customer.openedAt) &&
         !chargeKeys.has(`${customer.id}-${month}`)
     ).length;
   }
 
   function blockedMonthsForCustomer(customer: Customer) {
     return selectedMonths.filter(
-      (month) => !isMonthlyChargeAllowed(customer.closedAt, period, month)
+      (month) => !isMonthlyChargeAllowed(customer.closedAt, period, month, customer.openedAt)
     ).length;
   }
 
@@ -255,7 +255,7 @@ export function GenerateChargesPanel({
                   const pendingMonths = pendingCountForCustomer(customer);
                   const blockedMonths = blockedMonthsForCustomer(customer);
                   const allowedMonths = selectedMonths.filter((month) =>
-                    isMonthlyChargeAllowed(customer.closedAt, period, month)
+                    isMonthlyChargeAllowed(customer.closedAt, period, month, customer.openedAt)
                   ).length;
                   const existingMonths = allowedMonths - pendingMonths;
 
@@ -277,6 +277,11 @@ export function GenerateChargesPanel({
                       </td>
                       <td className="px-4 py-2 font-medium text-slate-900">
                         <div>{customer.name}</div>
+                        {customer.openedAt ? (
+                          <div className="text-xs font-normal text-sky-700">
+                            Açılış: {formatDateLabel(customer.openedAt)}
+                          </div>
+                        ) : null}
                         {customer.closedAt ? (
                           <div className="text-xs font-normal text-amber-700">
                             Kapanış: {formatDateLabel(customer.closedAt)}

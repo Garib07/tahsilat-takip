@@ -67,6 +67,10 @@ export function CustomerInfoModal({
             value={formatCurrency(monthlyFee)}
           />
           <InfoItem
+            label="Sözleşme / Açılış"
+            value={customer.openedAt ? formatDateLabel(customer.openedAt) : ""}
+          />
+          <InfoItem
             label="Sözleşme / Kapanış"
             value={customer.closedAt ? formatDateLabel(customer.closedAt) : ""}
           />

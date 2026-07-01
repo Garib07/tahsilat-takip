@@ -23,6 +23,7 @@ export type Customer = {
   monthlyFee: number;
   yearlyFees: YearlyFee[];
   active: boolean;
+  openedAt: string;
   closedAt: string;
   createdAt: string;
 };
@@ -101,6 +102,7 @@ export type CustomerCardInput = {
   email: string;
   website: string;
   monthlyFee: string;
+  openedAt: string;
   closedAt: string;
 };
 
