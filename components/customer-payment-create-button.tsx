@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPaymentAction } from "@/lib/actions";
 import { Modal } from "@/components/modal";
@@ -19,13 +19,18 @@ function defaultPaymentDate(period: number) {
 
 export function CustomerPaymentCreateButton({
   customerId,
-  period
+  period,
+  open: controlledOpen,
+  onOpenChange
 }: {
   customerId: string;
   period: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState({
@@ -34,6 +39,22 @@ export function CustomerPaymentCreateButton({
     method: "Banka",
     description: getDefaultPaymentDescription("Banka")
   });
+
+  function setOpen(next: boolean) {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    setForm({
+      date: defaultPaymentDate(period),
+      amount: "",
+      method: "Banka",
+      description: getDefaultPaymentDescription("Banka")
+    });
+    setMessage("");
+  }, [open, period]);
 
   function openModal() {
     setForm({
@@ -68,7 +89,7 @@ export function CustomerPaymentCreateButton({
         onClick={openModal}
         className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
       >
-        Tahsilat Ekle
+        Tahsilat Ekle <span className="text-xs font-normal text-emerald-700">(F3)</span>
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Tahsilat Ekle">

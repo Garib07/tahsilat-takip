@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CarryForwardActions } from "@/components/carry-forward-actions";
 import { ChargeActions } from "@/components/charge-actions";
 import { CustomerChargeCreateButton } from "@/components/customer-charge-create-button";
@@ -33,6 +33,32 @@ export function CustomerLedgerTable({
   carryForward: CarryForward | null;
   openingBalance: number;
 }) {
+  const [chargeOpen, setChargeOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+
+  useEffect(() => {
+    function isTypingTarget(target: EventTarget | null) {
+      if (!(target instanceof HTMLElement)) return false;
+      return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (chargeOpen || paymentOpen) return;
+      if (isTypingTarget(event.target)) return;
+
+      if (event.key === "F2") {
+        event.preventDefault();
+        setChargeOpen(true);
+      } else if (event.key === "F3") {
+        event.preventDefault();
+        setPaymentOpen(true);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [chargeOpen, paymentOpen]);
+
   const existingMonthlyMonths = useMemo(
     () => charges.filter((charge) => isMonthlyCharge(charge)).map((charge) => charge.month),
     [charges]
@@ -82,8 +108,15 @@ export function CustomerLedgerTable({
             period={period}
             defaultAmount={defaultMonthlyFee}
             existingMonthlyMonths={existingMonthlyMonths}
+            open={chargeOpen}
+            onOpenChange={setChargeOpen}
           />
-          <CustomerPaymentCreateButton customerId={customerId} period={period} />
+          <CustomerPaymentCreateButton
+            customerId={customerId}
+            period={period}
+            open={paymentOpen}
+            onOpenChange={setPaymentOpen}
+          />
         </div>
       </div>
       <div className="overflow-x-auto">

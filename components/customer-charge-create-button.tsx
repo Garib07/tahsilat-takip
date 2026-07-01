@@ -22,7 +22,7 @@ import {
   monthNames,
   sanitizeAmountTyping
 } from "@/lib/format";
-import { resolvePeriodMonth } from "@/lib/period";
+import { resolvePeriodMonth, getDefaultChargeDate } from "@/lib/period";
 
 type ChargeMode = "monthly" | "service";
 
@@ -187,6 +187,7 @@ function ChargeCreateModal({
   const [customDescription, setCustomDescription] = useState("");
   const [devirFromYear, setDevirFromYear] = useState(period - 1);
   const [devirDirection, setDevirDirection] = useState<"borc" | "alacak">("borc");
+  const [serviceDates, setServiceDates] = useState<Record<number, string>>({});
 
   const isDevirMode = mode === "service" && isDevirService(description);
 
@@ -206,6 +207,22 @@ function ChargeCreateModal({
     []
   );
   const handleClearAll = useCallback(() => setSelectedMonths([]), []);
+
+  useEffect(() => {
+    if (mode !== "service" || isDevirService(description)) return;
+
+    setServiceDates((current) => {
+      const next: Record<number, string> = {};
+      for (const month of selectedMonths) {
+        next[month] = current[month] ?? getDefaultChargeDate(period, month);
+      }
+      return next;
+    });
+  }, [description, mode, period, selectedMonths]);
+
+  function updateServiceDate(month: number, date: string) {
+    setServiceDates((current) => ({ ...current, [month]: date }));
+  }
 
   function resetAmount(nextValue: string) {
     amountRef.current = nextValue;
@@ -286,7 +303,8 @@ function ChargeCreateModal({
                 month,
                 amount: normalizedAmount,
                 description: resolveServiceDescription(),
-                kind: "service"
+                kind: "service",
+                date: serviceDates[month] ?? getDefaultChargeDate(period, month)
               });
             }
           }
@@ -437,6 +455,40 @@ function ChargeCreateModal({
         />
         ) : null}
 
+        {mode === "service" && !isDevirMode && selectedMonths.length > 0 ? (
+          <section>
+            <span className="mb-2 block text-sm font-medium text-slate-700">Tahakkuk Tarihleri</span>
+            <div className="overflow-hidden rounded-lg border border-slate-200">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Ay</th>
+                    <th className="px-3 py-2 font-medium">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedMonths.map((month) => (
+                    <tr key={month} className="border-t border-slate-100">
+                      <td className="px-3 py-2 font-medium text-slate-800">{monthNames[month - 1]}</td>
+                      <td className="px-3 py-2">
+                        <input
+                          required
+                          type="date"
+                          min={`${period}-01-01`}
+                          max={`${period}-12-31`}
+                          value={serviceDates[month] ?? getDefaultChargeDate(period, month)}
+                          onChange={(event) => updateServiceDate(month, event.target.value)}
+                          className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-slate-400"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
         <AmountInput
           key={`${mode}-${description}-${amountSeed}`}
           label={
@@ -481,14 +533,24 @@ export function CustomerChargeCreateButton({
   customerId,
   period,
   defaultAmount,
-  existingMonthlyMonths
+  existingMonthlyMonths,
+  open: controlledOpen,
+  onOpenChange
 }: {
   customerId: string;
   period: number;
   defaultAmount: number;
   existingMonthlyMonths: number[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+
+  function setOpen(next: boolean) {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  }
 
   return (
     <>
@@ -497,7 +559,7 @@ export function CustomerChargeCreateButton({
         onClick={() => setOpen(true)}
         className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
       >
-        Tahakkuk Ekle
+        Tahakkuk Ekle <span className="text-xs font-normal text-rose-600">(F2)</span>
       </button>
 
       {open ? (

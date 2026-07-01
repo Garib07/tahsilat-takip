@@ -102,6 +102,7 @@ export async function createChargeAction(input: {
   amount: string;
   description: string;
   kind?: "monthly" | "service";
+  date?: string;
 }) {
   const charge = await createCharge(input);
   revalidateCustomer(input.customerId);
