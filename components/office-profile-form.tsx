@@ -159,6 +159,14 @@ export function OfficeProfileForm({ office }: { office: OfficeProfile }) {
             </FormRow>
           </div>
 
+          <FormRow label="Adı Soyadı">
+            <input
+              value={form.authorizedPerson}
+              onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
+              className={inputClass}
+            />
+          </FormRow>
+
           <FormRow label="Unvan">
             <input
               value={form.firmName}
@@ -168,14 +176,6 @@ export function OfficeProfileForm({ office }: { office: OfficeProfile }) {
           </FormRow>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="Yetkili">
-              <input
-                value={form.authorizedPerson}
-                onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-
             <FormRow label="Gsm">
               <input
                 value={form.mobile}
