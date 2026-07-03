@@ -22,7 +22,6 @@ export function DashboardReceivablePanel({
   totalPayments: number;
 }) {
   const [showDoubtful, setShowDoubtful] = useState(false);
-  const totalReceivable = totalCollectible + totalDoubtful;
   const doubtfulCount = summary.filter((row) => row.doubtfulReceivable > 0).length;
 
   return (
@@ -63,7 +62,7 @@ export function DashboardReceivablePanel({
               />
             </>
           ) : (
-            <StatCard title="Toplam Alacak" value={formatCurrency(totalReceivable)} tone="danger" />
+            <StatCard title="Toplam Alacak" value={formatCurrency(totalCollectible)} tone="danger" />
           )}
           <StatCard title="Toplam Tahsilat" value={formatCurrency(totalPayments)} tone="success" />
           <StatCard title="Toplam Tahakkuk" value={formatCurrency(totalCharges)} />
