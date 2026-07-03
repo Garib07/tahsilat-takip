@@ -1,3 +1,4 @@
+import { getOfficeHeaderDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile } from "@/lib/types";
 
 export function StatementOfficeHeader({
@@ -7,19 +8,29 @@ export function StatementOfficeHeader({
   office: OfficeProfile;
   className?: string;
 }) {
-  const firmName = office.firmName || "";
-  const phone = office.phone || office.mobile;
-  const hasLogo = Boolean(office.logoDataUrl?.trim());
+  const { fullName, firmName, address, phones, hasLogo, hasContent } = getOfficeHeaderDisplay(office);
 
-  if (!firmName && !phone && !hasLogo) return null;
+  if (!hasContent) return null;
 
   return (
-    <div className={`statement-office-header flex w-full items-start justify-between gap-4 ${className}`}>
+    <div className={`statement-office-header flex w-full items-start justify-between gap-4 border-b-[3px] border-slate-700 pb-2 ${className}`}>
       <div className="min-w-0 flex-1">
-        {firmName ? (
-          <h1 className="text-[22px] font-bold leading-tight tracking-tight text-slate-800">{firmName}</h1>
+        {fullName ? (
+          <p className="text-[22px] font-bold uppercase leading-tight tracking-tight text-slate-800">
+            {fullName}
+          </p>
         ) : null}
-        {phone ? <p className="mt-0.5 text-sm text-slate-600">Tel: {phone}</p> : null}
+        {firmName ? (
+          <p
+            className={`font-semibold leading-snug text-slate-800 ${
+              fullName ? "mt-1 text-base" : "text-[22px] font-bold leading-tight tracking-tight"
+            }`}
+          >
+            {firmName}
+          </p>
+        ) : null}
+        {address ? <p className="mt-1.5 text-sm text-slate-600">{address}</p> : null}
+        {phones ? <p className="mt-0.5 text-sm text-slate-600">Tel: {phones}</p> : null}
       </div>
       {hasLogo ? (
         <div className="statement-logo-box flex h-16 w-24 shrink-0 items-center justify-center">

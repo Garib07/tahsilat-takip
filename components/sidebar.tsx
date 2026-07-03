@@ -20,7 +20,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function getSidebarSubtitle(office: OfficeProfile) {
-  return office.authorizedPerson || null;
+  return office.fullName || office.authorizedPerson || null;
 }
 
 export function Sidebar({

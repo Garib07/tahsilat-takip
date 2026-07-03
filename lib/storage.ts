@@ -12,6 +12,7 @@ const emptyPayload = JSON.stringify({
     period: new Date().getFullYear(),
     currency: "TL",
     firmName: "",
+    fullName: "",
     authorizedPerson: "",
     mobile: "",
     phone: "",

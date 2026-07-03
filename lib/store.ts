@@ -18,6 +18,7 @@ export { getDataDirectory } from "./storage";
 const emptyOfficeProfile: OfficeProfile = {
   period: new Date().getFullYear(),
   currency: "TL",
+  fullName: "",
   firmName: "",
   authorizedPerson: "",
   mobile: "",
@@ -133,6 +134,7 @@ function normalizeOffice(office?: Partial<OfficeProfile> & Record<string, unknow
   return {
     period: Number.isInteger(period) && period >= 2000 && period <= 2100 ? period : new Date().getFullYear(),
     currency: String(office?.currency ?? "TL").trim() || "TL",
+    fullName: String(office?.fullName ?? "").trim(),
     firmName: String(office?.firmName ?? "").trim(),
     authorizedPerson: legacyAccountant,
     mobile: String(office?.mobile ?? "").trim(),
@@ -338,6 +340,7 @@ export async function updateOfficeProfile(input: Partial<OfficeProfile>) {
     office.period = period;
   }
   if (input.currency !== undefined) office.currency = String(input.currency).trim() || "TL";
+  if (input.fullName !== undefined) office.fullName = String(input.fullName).trim();
   if (input.firmName !== undefined) office.firmName = String(input.firmName).trim();
   if (input.authorizedPerson !== undefined) office.authorizedPerson = String(input.authorizedPerson).trim();
   if (input.mobile !== undefined) office.mobile = String(input.mobile).trim();

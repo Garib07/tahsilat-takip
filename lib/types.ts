@@ -74,6 +74,7 @@ export type Database = {
 export type OfficeProfile = {
   period: number;
   currency: string;
+  fullName: string;
   firmName: string;
   authorizedPerson: string;
   mobile: string;

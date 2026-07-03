@@ -40,6 +40,7 @@ function toFormState(office: OfficeProfile) {
   return {
     period: office.period,
     currency: office.currency,
+    fullName: office.fullName,
     firmName: office.firmName,
     authorizedPerson: office.authorizedPerson,
     mobile: office.mobile,
@@ -161,8 +162,8 @@ export function OfficeProfileForm({ office }: { office: OfficeProfile }) {
 
           <FormRow label="Adı Soyadı">
             <input
-              value={form.authorizedPerson}
-              onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
+              value={form.fullName}
+              onChange={(event) => setForm({ ...form, fullName: event.target.value })}
               className={inputClass}
             />
           </FormRow>
@@ -176,6 +177,14 @@ export function OfficeProfileForm({ office }: { office: OfficeProfile }) {
           </FormRow>
 
           <div className="grid gap-3 md:grid-cols-2">
+            <FormRow label="Yetkili">
+              <input
+                value={form.authorizedPerson}
+                onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
+                className={inputClass}
+              />
+            </FormRow>
+
             <FormRow label="Gsm">
               <input
                 value={form.mobile}

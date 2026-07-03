@@ -2,6 +2,7 @@ import {
   formatReportMoney,
   formatReportTimestamp
 } from "@/lib/reports/format";
+import { getOfficeHeaderDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile, StatementReport } from "@/lib/types";
 
 function escapeHtml(value: unknown) {
@@ -17,22 +18,37 @@ function formatAmount(value: number, currency: string) {
 }
 
 function renderOfficeHeader(office: OfficeProfile) {
-  const firmName = office.firmName || "";
-  const phone = office.phone || office.mobile || "";
+  const { fullName, firmName, address, phones, hasLogo, hasContent } = getOfficeHeaderDisplay(office);
   const logo = office.logoDataUrl?.trim();
 
-  if (!firmName && !phone && !logo) return "";
+  if (!hasContent) return "";
 
-  const logoCell = logo
+  const logoCell = hasLogo
     ? `<td style="width:96px;text-align:right;vertical-align:top;"><img src="${escapeHtml(logo)}" alt="Logo" style="max-height:64px;max-width:96px;" /></td>`
     : `<td style="width:96px;"></td>`;
+
+  const titleBlock = [
+    fullName
+      ? `<div style="font-size:18px;font-weight:bold;color:#1e293b;text-transform:uppercase;">${escapeHtml(fullName)}</div>`
+      : "",
+    firmName
+      ? `<div style="font-size:${fullName ? "14px" : "18px"};font-weight:${fullName ? "600" : "bold"};color:#1e293b;margin-top:${fullName ? "4px" : "0"};">${escapeHtml(firmName)}</div>`
+      : "",
+    address
+      ? `<div style="font-size:12px;color:#475569;margin-top:6px;">${escapeHtml(address)}</div>`
+      : "",
+    phones
+      ? `<div style="font-size:12px;color:#475569;margin-top:2px;">Tel: ${escapeHtml(phones)}</div>`
+      : ""
+  ]
+    .filter(Boolean)
+    .join("");
 
   return `
     <table style="width:100%;border-collapse:collapse;margin-bottom:12px;border-bottom:3px solid #334155;">
       <tr>
         <td style="vertical-align:top;padding-bottom:8px;">
-          ${firmName ? `<div style="font-size:18px;font-weight:bold;color:#1e293b;">${escapeHtml(firmName)}</div>` : ""}
-          ${phone ? `<div style="font-size:12px;color:#475569;margin-top:2px;">Tel: ${escapeHtml(phone)}</div>` : ""}
+          ${titleBlock}
         </td>
         ${logoCell}
       </tr>
