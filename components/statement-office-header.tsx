@@ -8,7 +8,8 @@ export function StatementOfficeHeader({
   office: OfficeProfile;
   className?: string;
 }) {
-  const { fullName, firmName, address, phones, hasLogo, hasContent } = getOfficeHeaderDisplay(office);
+  const { fullName, firmName, address, phones, email, website, hasLogo, hasContent } =
+    getOfficeHeaderDisplay(office);
 
   if (!hasContent) return null;
 
@@ -31,6 +32,8 @@ export function StatementOfficeHeader({
         ) : null}
         {address ? <p className="mt-1.5 text-sm text-slate-600">{address}</p> : null}
         {phones ? <p className="mt-0.5 text-sm text-slate-600">Tel: {phones}</p> : null}
+        {email ? <p className="mt-0.5 text-sm text-slate-600">E-Posta: {email}</p> : null}
+        {website ? <p className="mt-0.5 text-sm text-slate-600">Web: {website}</p> : null}
       </div>
       {hasLogo ? (
         <div className="statement-logo-box flex h-16 w-24 shrink-0 items-center justify-center">

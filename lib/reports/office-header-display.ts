@@ -20,6 +20,8 @@ export function getOfficeHeaderDisplay(office: OfficeProfile) {
   const firmName = String(office.firmName ?? "").trim();
   const address = formatOfficeAddress(office);
   const phones = formatOfficePhones(office);
+  const email = String(office.email ?? "").trim();
+  const website = String(office.website ?? "").trim();
   const hasLogo = Boolean(office.logoDataUrl?.trim());
 
   return {
@@ -27,7 +29,11 @@ export function getOfficeHeaderDisplay(office: OfficeProfile) {
     firmName,
     address,
     phones,
+    email,
+    website,
     hasLogo,
-    hasContent: Boolean(fullName || firmName || address || phones || hasLogo)
+    hasContent: Boolean(
+      fullName || firmName || address || phones || email || website || hasLogo
+    )
   };
 }

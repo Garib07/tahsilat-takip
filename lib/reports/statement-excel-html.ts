@@ -18,7 +18,8 @@ function formatAmount(value: number, currency: string) {
 }
 
 function renderOfficeHeader(office: OfficeProfile) {
-  const { fullName, firmName, address, phones, hasLogo, hasContent } = getOfficeHeaderDisplay(office);
+  const { fullName, firmName, address, phones, email, website, hasLogo, hasContent } =
+    getOfficeHeaderDisplay(office);
   const logo = office.logoDataUrl?.trim();
 
   if (!hasContent) return "";
@@ -39,6 +40,12 @@ function renderOfficeHeader(office: OfficeProfile) {
       : "",
     phones
       ? `<div style="font-size:12px;color:#475569;margin-top:2px;">Tel: ${escapeHtml(phones)}</div>`
+      : "",
+    email
+      ? `<div style="font-size:12px;color:#475569;margin-top:2px;">E-Posta: ${escapeHtml(email)}</div>`
+      : "",
+    website
+      ? `<div style="font-size:12px;color:#475569;margin-top:2px;">Web: ${escapeHtml(website)}</div>`
       : ""
   ]
     .filter(Boolean)
