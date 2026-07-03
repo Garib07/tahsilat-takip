@@ -25,6 +25,10 @@ export type Customer = {
   active: boolean;
   openedAt: string;
   closedAt: string;
+  receivableStatus: "normal" | "doubtful";
+  doubtfulAmount: number;
+  doubtfulNote: string;
+  doubtfulMarkedAt: string;
   createdAt: string;
 };
 
@@ -104,6 +108,9 @@ export type CustomerCardInput = {
   monthlyFee: string;
   openedAt: string;
   closedAt: string;
+  receivableStatus: "normal" | "doubtful";
+  doubtfulAmount: string;
+  doubtfulNote: string;
 };
 
 export type SummaryRow = {
@@ -117,6 +124,9 @@ export type SummaryRow = {
   balance: number;
   selectedMonthCharge: number;
   selectedMonthPayments: number;
+  receivableStatus: "normal" | "doubtful";
+  doubtfulReceivable: number;
+  collectibleReceivable: number;
 };
 
 export type YearEndRolloverPreviewRow = {

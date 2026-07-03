@@ -4,6 +4,7 @@ import { CustomerPeriodsPanel } from "@/components/customer-periods-panel";
 import { Modal } from "@/components/modal";
 import { getCustomerFeeForYear } from "@/lib/fees";
 import { formatCurrency, formatDateLabel } from "@/lib/format";
+import { receivableStatusLabel } from "@/lib/receivables";
 import { Customer } from "@/lib/types";
 
 function InfoItem({
@@ -74,6 +75,29 @@ export function CustomerInfoModal({
             label="Sözleşme / Kapanış"
             value={customer.closedAt ? formatDateLabel(customer.closedAt) : ""}
           />
+          <InfoItem
+            label="Alacak durumu"
+            value={receivableStatusLabel(customer.receivableStatus ?? "normal")}
+          />
+          {customer.receivableStatus === "doubtful" ? (
+            <>
+              <InfoItem
+                label="Şüpheli tutar"
+                value={
+                  customer.doubtfulAmount > 0
+                    ? formatCurrency(customer.doubtfulAmount)
+                    : "Tüm pozitif bakiye"
+                }
+              />
+              <InfoItem label="Şüpheli not" value={customer.doubtfulNote} className="md:col-span-2" />
+              <InfoItem
+                label="İşaretleme tarihi"
+                value={
+                  customer.doubtfulMarkedAt ? formatDateLabel(customer.doubtfulMarkedAt.slice(0, 10)) : ""
+                }
+              />
+            </>
+          ) : null}
         </div>
 
         <CustomerPeriodsPanel customer={customer} viewPeriod={viewPeriod} embedded />

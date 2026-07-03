@@ -5,6 +5,7 @@ import { StatCard } from "@/components/ui";
 import { getCustomerFeeForYear } from "@/lib/fees";
 import { formatCurrency } from "@/lib/format";
 import { formatPeriodLabel } from "@/lib/period";
+import { splitReceivableBalance } from "@/lib/receivables";
 import { getCustomerStatement, getPeriodContext } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,13 @@ export default async function CustomerDetailPage({
   const totalCharges = charges.reduce((total, item) => total + item.amount, 0);
   const totalPayments = payments.reduce((total, item) => total + item.amount, 0);
   const balance = Math.round((openingBalance + totalCharges - totalPayments) * 100) / 100;
+  const { doubtfulReceivable, collectibleReceivable } = splitReceivableBalance(
+    balance,
+    customer.receivableStatus ?? "normal",
+    customer.doubtfulAmount
+  );
   const defaultMonthlyFee = getCustomerFeeForYear(customer, period);
+  const showReceivableSplit = balance > 0 && customer.receivableStatus === "doubtful";
 
   return (
     <>
@@ -39,7 +46,15 @@ export default async function CustomerDetailPage({
       />
 
       <section
-        className={`mb-8 grid gap-4 ${openingBalance !== 0 ? "md:grid-cols-4" : "md:grid-cols-3"}`}
+        className={`mb-8 grid gap-4 ${
+          openingBalance !== 0
+            ? showReceivableSplit
+              ? "md:grid-cols-3 xl:grid-cols-6"
+              : "md:grid-cols-4"
+            : showReceivableSplit
+              ? "md:grid-cols-2 xl:grid-cols-5"
+              : "md:grid-cols-3"
+        }`}
       >
         {openingBalance !== 0 ? (
           <StatCard title="Devir Bakiyesi" value={formatCurrency(openingBalance)} />
@@ -51,6 +66,20 @@ export default async function CustomerDetailPage({
           value={formatCurrency(balance)}
           tone={balance > 0 ? "danger" : "default"}
         />
+        {showReceivableSplit ? (
+          <>
+            <StatCard
+              title="Takip Edilebilir"
+              value={formatCurrency(collectibleReceivable)}
+              tone="danger"
+            />
+            <StatCard
+              title="Şüpheli Alacak"
+              value={formatCurrency(doubtfulReceivable)}
+              tone="warning"
+            />
+          </>
+        ) : null}
       </section>
 
       <CustomerLedgerTable

@@ -45,7 +45,10 @@ function emptyForm(nextCode: string): CustomerCardInput {
     website: "",
     monthlyFee: "",
     openedAt: "",
-    closedAt: ""
+    closedAt: "",
+    receivableStatus: "normal",
+    doubtfulAmount: "",
+    doubtfulNote: ""
   };
 }
 
@@ -67,7 +70,11 @@ export function customerToCardInput(customer: Customer, period: number): Custome
     website: customer.website,
     monthlyFee: formatAmountWithCents(String(getCustomerFeeForYear(customer, period))),
     openedAt: customer.openedAt ?? "",
-    closedAt: customer.closedAt ?? ""
+    closedAt: customer.closedAt ?? "",
+    receivableStatus: customer.receivableStatus ?? "normal",
+    doubtfulAmount:
+      customer.doubtfulAmount > 0 ? formatAmountWithCents(String(customer.doubtfulAmount)) : "",
+    doubtfulNote: customer.doubtfulNote ?? ""
   };
 }
 
@@ -283,6 +290,65 @@ export function CustomerCardForm({
               placeholder="5.000,00"
             />
           </FormRow>
+
+          <div className="mt-2 border-t border-slate-100 pt-4">
+            <p className="mb-3 text-sm font-medium text-slate-700">Alacak takibi</p>
+            <FormRow label="Durum">
+              <select
+                value={form.receivableStatus}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    receivableStatus: event.target.value === "doubtful" ? "doubtful" : "normal"
+                  })
+                }
+                className={inputClass}
+              >
+                <option value="normal">Normal</option>
+                <option value="doubtful">Şüpheli alacak</option>
+              </select>
+            </FormRow>
+
+            {form.receivableStatus === "doubtful" ? (
+              <>
+                <FormRow label="Şüpheli tutar" className="mt-3">
+                  <div>
+                    <input
+                      inputMode="decimal"
+                      value={form.doubtfulAmount}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          doubtfulAmount: formatAmountInput(event.target.value)
+                        })
+                      }
+                      onBlur={() =>
+                        setForm({
+                          ...form,
+                          doubtfulAmount: form.doubtfulAmount.trim()
+                            ? formatAmountWithCents(form.doubtfulAmount)
+                            : ""
+                        })
+                      }
+                      className={inputClass}
+                      placeholder="Boş bırakılırsa tüm pozitif bakiye"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Kısmi şüpheli alacak için tutar girin; boşsa carinin tüm borcu şüpheli sayılır.
+                    </p>
+                  </div>
+                </FormRow>
+                <FormRow label="Not" className="mt-3">
+                  <textarea
+                    value={form.doubtfulNote}
+                    onChange={(event) => setForm({ ...form, doubtfulNote: event.target.value })}
+                    className={`${inputClass} min-h-[72px] resize-y`}
+                    placeholder="Şüpheli alacak gerekçesi (isteğe bağlı)"
+                  />
+                </FormRow>
+              </>
+            ) : null}
+          </div>
 
           <FormRow label="Açılış">
             <div>

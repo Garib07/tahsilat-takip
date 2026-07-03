@@ -6,6 +6,7 @@ import { CustomerEditButton } from "@/components/customer-edit-button";
 import { CustomerInfoModal } from "@/components/customer-info-modal";
 import { CustomerReportActions } from "@/components/customer-report-actions";
 import { PeriodBadge } from "@/components/period-badge";
+import { ReceivableStatusBadge } from "@/components/receivable-status-badge";
 import { Customer } from "@/lib/types";
 
 export function CustomerDetailHeader({
@@ -32,6 +33,11 @@ export function CustomerDetailHeader({
             >
               {customer.name}
             </button>
+            {customer.receivableStatus === "doubtful" ? (
+              <div className="mt-2">
+                <ReceivableStatusBadge status="doubtful" />
+              </div>
+            ) : null}
             <p className="mt-1 text-sm text-slate-500">{description}</p>
           </div>
 

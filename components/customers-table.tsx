@@ -5,11 +5,14 @@ import { useMemo, useState } from "react";
 import { CustomerEditButton } from "@/components/customer-edit-button";
 import { CustomerReportActions } from "@/components/customer-report-actions";
 import { CustomerSearchInput } from "@/components/customer-search-input";
+import { ReceivableStatusBadge } from "@/components/receivable-status-badge";
+import { ReceivableStatusFilter } from "@/components/receivable-status-filter";
 import { Card } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { formatActivePeriods } from "@/lib/customer-periods";
 import { matchesCustomerSearch } from "@/lib/customer-search";
 import { getCustomerFeeForYear } from "@/lib/fees";
+import { ReceivableStatus } from "@/lib/receivables";
 import { Customer } from "@/lib/types";
 
 export function CustomersTable({
@@ -20,11 +23,14 @@ export function CustomersTable({
   period: number;
 }) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | ReceivableStatus>("all");
 
-  const filteredCustomers = useMemo(
-    () => customers.filter((customer) => matchesCustomerSearch(customer, search)),
-    [customers, search]
-  );
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      if (statusFilter !== "all" && customer.receivableStatus !== statusFilter) return false;
+      return matchesCustomerSearch(customer, search);
+    });
+  }, [customers, search, statusFilter]);
 
   return (
     <Card>
@@ -32,11 +38,14 @@ export function CustomersTable({
         <p className="text-sm text-slate-500">
           {filteredCustomers.length} / {customers.length} cari
         </p>
-        <CustomerSearchInput
-          value={search}
-          onChange={setSearch}
-          className="w-full min-w-[14rem] sm:w-72"
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <ReceivableStatusFilter value={statusFilter} onChange={setStatusFilter} />
+          <CustomerSearchInput
+            value={search}
+            onChange={setSearch}
+            className="w-full min-w-[14rem] sm:w-72"
+          />
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -47,7 +56,8 @@ export function CustomersTable({
               <th className="px-6 py-3 font-medium">Yetkili</th>
               <th className="px-6 py-3 font-medium">Telefon</th>
                 <th className="px-6 py-3 font-medium">Aktif Dönemler</th>
-                <th className="px-6 py-3 font-medium">Aylık Ücret ({period})</th>
+              <th className="px-6 py-3 font-medium">Aylık Ücret ({period})</th>
+              <th className="px-6 py-3 font-medium">Alacak</th>
               <th className="px-6 py-3 font-medium">Durum</th>
               <th className="px-6 py-3 font-medium">İşlem</th>
               <th className="px-6 py-3 font-medium">Ekstre</th>
@@ -55,7 +65,12 @@ export function CustomersTable({
           </thead>
           <tbody>
             {filteredCustomers.map((customer) => (
-              <tr key={customer.id} className="border-t border-slate-100 hover:bg-slate-50/80">
+              <tr
+                key={customer.id}
+                className={`border-t border-slate-100 hover:bg-slate-50/80 ${
+                  customer.receivableStatus === "doubtful" ? "bg-amber-50/50" : ""
+                }`}
+              >
                 <td className="px-6 py-3 font-mono text-xs text-slate-600">{customer.code || "—"}</td>
                 <td className="px-6 py-3">
                   <Link
@@ -75,6 +90,9 @@ export function CustomersTable({
                   </td>
                   <td className="px-6 py-3">
                   {formatCurrency(getCustomerFeeForYear(customer, period))}
+                </td>
+                <td className="px-6 py-3">
+                  <ReceivableStatusBadge status={customer.receivableStatus ?? "normal"} />
                 </td>
                 <td className="px-6 py-3">
                   <span
@@ -102,14 +120,14 @@ export function CustomersTable({
             ))}
             {!customers.length ? (
               <tr>
-                  <td colSpan={9} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
                   {period} döneminde cari kaydı yok. Firma Yönetimi&apos;nden dönemi kontrol edin veya yeni
                   cari ekleyin.
                 </td>
               </tr>
             ) : !filteredCustomers.length ? (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
                   Aramanızla eşleşen cari bulunamadı.
                 </td>
               </tr>

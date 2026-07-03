@@ -27,14 +27,16 @@ export function StatCard({
 }: {
   title: string;
   value: string;
-  tone?: "default" | "danger" | "success";
+  tone?: "default" | "danger" | "success" | "warning";
 }) {
   const toneClass =
     tone === "danger"
       ? "border-rose-100 bg-rose-50"
       : tone === "success"
         ? "border-emerald-100 bg-emerald-50"
-        : "border-slate-200 bg-white";
+        : tone === "warning"
+          ? "border-amber-100 bg-amber-50"
+          : "border-slate-200 bg-white";
 
   return (
     <div className={`rounded-xl border p-5 shadow-sm ${toneClass}`}>

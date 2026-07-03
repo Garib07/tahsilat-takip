@@ -21,10 +21,8 @@ export default async function DashboardPage({
     getSummary({ year: period, month }),
     getNextCustomerCode()
   ]);
-  const totalReceivable = summary.reduce(
-    (total, row) => total + (row.balance > 0 ? row.balance : 0),
-    0
-  );
+  const totalCollectible = summary.reduce((total, row) => total + row.collectibleReceivable, 0);
+  const totalDoubtful = summary.reduce((total, row) => total + row.doubtfulReceivable, 0);
   const totalCharges = summary.reduce((total, row) => total + row.totalCharges, 0);
   const totalPayments = summary.reduce((total, row) => total + row.totalPayments, 0);
   const monthlyCharges = summary.reduce((total, row) => total + row.selectedMonthCharge, 0);
@@ -50,8 +48,13 @@ export default async function DashboardPage({
         monthlyPayments={monthlyPayments}
       />
 
-      <section className="mb-8 grid gap-4 md:grid-cols-3">
-        <StatCard title="Toplam Alacak" value={formatCurrency(totalReceivable)} tone="danger" />
+      <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Takip Edilebilir Alacak"
+          value={formatCurrency(totalCollectible)}
+          tone="danger"
+        />
+        <StatCard title="Şüpheli Alacak" value={formatCurrency(totalDoubtful)} tone="warning" />
         <StatCard title="Toplam Tahsilat" value={formatCurrency(totalPayments)} tone="success" />
         <StatCard title="Toplam Tahakkuk" value={formatCurrency(totalCharges)} />
       </section>

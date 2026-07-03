@@ -3,7 +3,13 @@ import { Charge, CarryForward, Customer, CustomerCardInput, Database, OfficeProf
 import { getCustomerFeeForYear, normalizeYearlyFees, parseYearlyFeesInput } from "./fees";
 import { normalizeCharge } from "./charges";
 import { isCustomerActiveInPeriod, normalizeActivePeriods } from "./customer-periods";
-import { normalizeClosedAt, normalizeOpenedAt, validateCustomerContractDates, isMonthlyChargeAllowed } from "./customer-closure";
+import { normalizeReceivableStatus, splitReceivableBalance, type ReceivableStatus } from "./receivables";
+import {
+  isMonthlyChargeAllowed,
+  normalizeClosedAt,
+  normalizeOpenedAt,
+  validateCustomerContractDates
+} from "./customer-closure";
 import { getDefaultChargeDate, isDateInPeriod, resolvePeriodMonth } from "./period";
 import { readRawDatabase, writeRawDatabase } from "./storage";
 
@@ -180,10 +186,42 @@ function normalizeCustomer(customer: Customer & { title?: string; period?: numbe
     website: String(customer.website ?? "").trim(),
     openedAt: normalizeOpenedAt(customer.openedAt),
     closedAt: normalizeClosedAt(customer.closedAt),
+    receivableStatus: normalizeReceivableStatus(customer.receivableStatus),
+    doubtfulAmount: Math.max(0, Number(customer.doubtfulAmount) || 0),
+    doubtfulNote: String(customer.doubtfulNote ?? "").trim(),
+    doubtfulMarkedAt: String(customer.doubtfulMarkedAt ?? "").trim(),
     activePeriods,
     yearlyFees,
     monthlyFee: getCustomerFeeForYear({ ...customer, yearlyFees }, displayYear)
   };
+}
+
+function applyReceivableFromCard(
+  customer: Customer,
+  input: {
+    receivableStatus?: unknown;
+    doubtfulAmount?: unknown;
+    doubtfulNote?: unknown;
+  },
+  previousStatus: ReceivableStatus = "normal"
+) {
+  const nextStatus = normalizeReceivableStatus(input.receivableStatus);
+  customer.receivableStatus = nextStatus;
+
+  if (nextStatus === "doubtful") {
+    customer.doubtfulNote = String(input.doubtfulNote ?? "").trim();
+    customer.doubtfulAmount = String(input.doubtfulAmount ?? "").trim()
+      ? normalizeAmount(input.doubtfulAmount)
+      : 0;
+    if (previousStatus !== "doubtful") {
+      customer.doubtfulMarkedAt = now();
+    }
+    return;
+  }
+
+  customer.doubtfulNote = "";
+  customer.doubtfulAmount = 0;
+  customer.doubtfulMarkedAt = "";
 }
 
 function requireCustomerInPeriod(customer: Customer, year: number) {
@@ -385,6 +423,9 @@ export async function createCustomer(input: {
   closedAt?: unknown;
   monthlyFee?: unknown;
   yearlyFees?: unknown;
+  receivableStatus?: unknown;
+  doubtfulAmount?: unknown;
+  doubtfulNote?: unknown;
 }) {
   const database = await readDatabase();
   const period = database.office.period;
@@ -418,8 +459,14 @@ export async function createCustomer(input: {
     yearlyFees,
     monthlyFee: getCustomerFeeForYear({ yearlyFees, monthlyFee: 0 }, period),
     active: true,
+    receivableStatus: "normal",
+    doubtfulAmount: 0,
+    doubtfulNote: "",
+    doubtfulMarkedAt: "",
     createdAt: now()
   };
+
+  applyReceivableFromCard(customer, input);
 
   database.customers.push(customer);
   await writeDatabase(database);
@@ -529,6 +576,7 @@ export async function updateCustomerFromCard(id: string, input: CustomerCardInpu
   customer.closedAt = closedAt;
   customer.yearlyFees = [...otherFees, { year: viewPeriod, amount }].sort((a, b) => a.year - b.year);
   customer.monthlyFee = getCustomerFeeForYear(customer, viewPeriod);
+  applyReceivableFromCard(customer, input, normalized.receivableStatus);
 
   await writeDatabase(database);
   return normalizeCustomer(customer);
@@ -993,7 +1041,15 @@ export async function getSummary(input: { year: unknown; month: unknown }) {
         selectedMonthCharge: sum(
           customerCharges.filter((item) => item.month === month).map((item) => item.amount)
         ),
-        selectedMonthPayments: sum(selectedMonthPayments.map((item) => item.amount))
+        selectedMonthPayments: sum(selectedMonthPayments.map((item) => item.amount)),
+        receivableStatus: customer.receivableStatus,
+        ...splitReceivableBalance(
+          openingBalance +
+            sum(customerCharges.map((item) => item.amount)) -
+            sum(customerPayments.map((item) => item.amount)),
+          customer.receivableStatus,
+          customer.doubtfulAmount
+        )
       };
     });
 
