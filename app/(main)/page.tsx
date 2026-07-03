@@ -1,9 +1,9 @@
 import { CustomerCreateButton } from "@/components/customer-create-button";
 import { DashboardMonthSummary } from "@/components/dashboard-month-summary";
-import { DashboardSummaryTable } from "@/components/dashboard-summary-table";
+import { DashboardReceivablePanel } from "@/components/dashboard-receivable-panel";
 import { PeriodBadge } from "@/components/period-badge";
-import { PageHeader, StatCard } from "@/components/ui";
-import { formatCurrency, monthNames } from "@/lib/format";
+import { PageHeader } from "@/components/ui";
+import { monthNames } from "@/lib/format";
 import { formatPeriodLabel, parseDashboardMonth } from "@/lib/period";
 import { getNextCustomerCode, getPeriodContext, getSummary } from "@/lib/store";
 
@@ -48,18 +48,14 @@ export default async function DashboardPage({
         monthlyPayments={monthlyPayments}
       />
 
-      <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Takip Edilebilir Alacak"
-          value={formatCurrency(totalCollectible)}
-          tone="danger"
-        />
-        <StatCard title="Şüpheli Alacak" value={formatCurrency(totalDoubtful)} tone="warning" />
-        <StatCard title="Toplam Tahsilat" value={formatCurrency(totalPayments)} tone="success" />
-        <StatCard title="Toplam Tahakkuk" value={formatCurrency(totalCharges)} />
-      </section>
-
-      <DashboardSummaryTable period={period} summary={summary} />
+      <DashboardReceivablePanel
+        period={period}
+        summary={summary}
+        totalCollectible={totalCollectible}
+        totalDoubtful={totalDoubtful}
+        totalCharges={totalCharges}
+        totalPayments={totalPayments}
+      />
     </>
   );
 }
