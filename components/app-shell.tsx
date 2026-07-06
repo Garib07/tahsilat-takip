@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { getSidebarOfficeDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile } from "@/lib/types";
 
 export function AppShell({
@@ -18,7 +19,7 @@ export function AppShell({
 }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const title = office.firmName || "Tahsilat Takip";
+  const { title } = getSidebarOfficeDisplay(office);
 
   useEffect(() => {
     if (!cloudMode) return;

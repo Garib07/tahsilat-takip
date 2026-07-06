@@ -15,6 +15,24 @@ export function formatOfficePhones(office: OfficeProfile) {
   return [...new Set(phones)].join(" · ");
 }
 
+export function getSidebarOfficeDisplay(office: OfficeProfile) {
+  const fullName = String(office.fullName ?? "").trim();
+  const firmName = String(office.firmName ?? "").trim();
+  const authorizedPerson = String(office.authorizedPerson ?? "").trim();
+
+  if (fullName) {
+    return {
+      title: fullName,
+      subtitle: firmName || null
+    };
+  }
+
+  return {
+    title: firmName || "Tahsilat Takip",
+    subtitle: authorizedPerson || null
+  };
+}
+
 export function getOfficeHeaderDisplay(office: OfficeProfile) {
   const fullName = String(office.fullName ?? "").trim();
   const firmName = String(office.firmName ?? "").trim();

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PeriodSwitcher } from "@/components/period-switcher";
+import { getSidebarOfficeDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile } from "@/lib/types";
 
 const menuItems = [
@@ -19,10 +20,6 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-function getSidebarSubtitle(office: OfficeProfile) {
-  return office.fullName || office.authorizedPerson || null;
-}
-
 export function Sidebar({
   office,
   onNavigate,
@@ -35,8 +32,7 @@ export function Sidebar({
   cloudMode?: boolean;
 }) {
   const pathname = usePathname();
-  const title = office.firmName || "Tahsilat Takip";
-  const subtitle = getSidebarSubtitle(office);
+  const { title, subtitle } = getSidebarOfficeDisplay(office);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
