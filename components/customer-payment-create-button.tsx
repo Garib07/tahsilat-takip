@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPaymentAction } from "@/lib/actions";
 import { Modal } from "@/components/modal";
@@ -29,6 +29,7 @@ export function CustomerPaymentCreateButton({
   onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const [message, setMessage] = useState("");
@@ -54,6 +55,8 @@ export function CustomerPaymentCreateButton({
       description: getDefaultPaymentDescription("Banka")
     });
     setMessage("");
+    const timer = window.setTimeout(() => dateInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
   }, [open, period]);
 
   function openModal() {
@@ -100,6 +103,7 @@ export function CustomerPaymentCreateButton({
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-slate-700">Tarih</span>
             <input
+              ref={dateInputRef}
               required
               type="date"
               min={`${period}-01-01`}
