@@ -33,6 +33,11 @@ export function isCloudStorageEnabled() {
   return Boolean(getTursoCredentials());
 }
 
+/** Masaüstünde bulut senkronu açıkken okuma/yazma yerel dosyadan yapılır. */
+export function isDesktopLocalFirstStorage() {
+  return isDesktopApp() && isCloudStorageEnabled();
+}
+
 function getTursoCredentials() {
   if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
     return {
@@ -179,7 +184,24 @@ async function writeToTurso(payload: string) {
   });
 }
 
+export async function readFromCloud(): Promise<string> {
+  if (!getTursoCredentials()) {
+    throw new Error("Turso yapılandırması eksik.");
+  }
+  return readFromTurso();
+}
+
+export async function writeToCloud(payload: string) {
+  if (!getTursoCredentials()) {
+    throw new Error("Turso yapılandırması eksik.");
+  }
+  await writeToTurso(payload);
+}
+
 export async function readRawDatabase(): Promise<string> {
+  if (isDesktopLocalFirstStorage()) {
+    return readFromFile();
+  }
   if (isCloudStorageEnabled()) {
     return readFromTurso();
   }
@@ -187,6 +209,10 @@ export async function readRawDatabase(): Promise<string> {
 }
 
 export async function writeRawDatabase(payload: string) {
+  if (isDesktopLocalFirstStorage()) {
+    await writeToFile(payload);
+    return;
+  }
   if (isCloudStorageEnabled()) {
     await writeToTurso(payload);
     await mirrorLocalBackup(payload);
@@ -196,6 +222,10 @@ export async function writeRawDatabase(payload: string) {
 }
 
 export async function importRawDatabase(payload: string) {
+  if (isDesktopLocalFirstStorage()) {
+    await writeToCloud(payload);
+    return;
+  }
   await writeRawDatabase(payload);
 }
 

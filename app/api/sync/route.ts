@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSyncStatus, saveSyncSettings, syncNow } from "@/lib/sync";
+import {
+  getSyncStatus,
+  pushLocalToCloud,
+  pushLocalToCloudOnShutdown,
+  reconcileOnStartup,
+  saveSyncSettings,
+  syncNow
+} from "@/lib/sync";
 import { isDesktopApp } from "@/lib/sync-config";
 import { readSyncConfig } from "@/lib/sync-config";
 
@@ -24,12 +31,27 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json()) as {
-    action?: "save" | "sync";
+    action?: "save" | "sync" | "startup" | "shutdown" | "push";
     enabled?: boolean;
     tursoDatabaseUrl?: string;
     tursoAuthToken?: string;
     appUrl?: string;
   };
+
+  if (body.action === "startup") {
+    await reconcileOnStartup();
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "shutdown") {
+    await pushLocalToCloudOnShutdown();
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "push") {
+    await pushLocalToCloud();
+    return NextResponse.json({ ok: true });
+  }
 
   if (body.action === "sync") {
     const status = await syncNow();

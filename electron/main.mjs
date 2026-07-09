@@ -10,6 +10,39 @@ const isDev = process.env.ELECTRON_DEV === "1";
 const SERVER_PORT = isDev ? "3000" : "3847";
 const SERVER_URL = `http://127.0.0.1:${SERVER_PORT}`;
 
+function postSyncAction(action) {
+  return new Promise((resolve) => {
+    const data = JSON.stringify({ action });
+    const url = new URL("/api/sync", SERVER_URL);
+    const request = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(data)
+        },
+        timeout: 30000
+      },
+      (response) => {
+        response.resume();
+        resolve(response.statusCode ?? 0);
+      }
+    );
+
+    request.on("error", () => resolve(0));
+    request.on("timeout", () => {
+      request.destroy();
+      resolve(0);
+    });
+    request.write(data);
+    request.end();
+  });
+}
+
+let quitting = false;
 let mainWindow = null;
 let serverProcess = null;
 
@@ -148,6 +181,7 @@ async function startBackend() {
   }
 
   await waitForServer(SERVER_URL);
+  await postSyncAction("startup");
 }
 
 function createWindow() {
@@ -217,8 +251,20 @@ if (!gotLock) {
     }
   });
 
-  app.on("before-quit", () => {
+  app.on("before-quit", async (event) => {
+    if (quitting) return;
+
+    event.preventDefault();
+    quitting = true;
+
+    try {
+      await postSyncAction("shutdown");
+    } catch (error) {
+      console.error("Buluta gonderilemedi:", error);
+    }
+
     stopServer();
+    app.quit();
   });
 
   app.on("activate", () => {

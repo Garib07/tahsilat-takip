@@ -1,10 +1,10 @@
 import {
-  importRawDatabase,
   isCloudStorageEnabled,
+  readFromCloud,
   readLocalDatabaseOnly,
-  readRawDatabase,
   resetStorageClients,
-  writeLocalDatabaseOnly
+  writeLocalDatabaseOnly,
+  writeToCloud
 } from "@/lib/storage";
 import { getSyncConfigPath, isDesktopApp, readSyncConfig, writeSyncConfig } from "@/lib/sync-config";
 
@@ -30,9 +30,11 @@ async function reconcileLocalAndCloud() {
 
   let cloudPayload: string;
   try {
-    cloudPayload = await readRawDatabase();
+    cloudPayload = await readFromCloud();
   } catch {
-    await importRawDatabase(localPayload);
+    if (scoreDatabasePayload(localPayload) > 0) {
+      await writeToCloud(localPayload);
+    }
     return;
   }
 
@@ -46,13 +48,21 @@ async function reconcileLocalAndCloud() {
 
   if (localScore > cloudScore) {
     resetStorageClients();
-    await importRawDatabase(localPayload);
+    await writeToCloud(localPayload);
     return;
   }
 
   if (cloudScore > 0) {
     await writeLocalDatabaseOnly(cloudPayload);
   }
+}
+
+export async function reconcileOnStartup() {
+  if (!isDesktopApp() || !isCloudStorageEnabled()) {
+    return;
+  }
+
+  await reconcileLocalAndCloud();
 }
 
 export async function getSyncStatus() {
@@ -99,7 +109,11 @@ export async function saveSyncSettings(input: {
 
   let cloudPayload: string | null = null;
   if (isCloudStorageEnabled()) {
-    cloudPayload = await readRawDatabase();
+    try {
+      cloudPayload = await readFromCloud();
+    } catch {
+      cloudPayload = null;
+    }
   }
 
   await writeSyncConfig({
@@ -128,7 +142,21 @@ export async function pushLocalToCloud() {
   }
 
   resetStorageClients();
-  await importRawDatabase(localPayload);
+  await writeToCloud(localPayload);
+}
+
+export async function pushLocalToCloudOnShutdown() {
+  if (!isDesktopApp() || !isCloudStorageEnabled()) {
+    return;
+  }
+
+  const localPayload = await readLocalDatabaseOnly();
+  if (scoreDatabasePayload(localPayload) === 0) {
+    return;
+  }
+
+  resetStorageClients();
+  await writeToCloud(localPayload);
 }
 
 export async function pullCloudToLocal() {
@@ -136,7 +164,7 @@ export async function pullCloudToLocal() {
     return;
   }
 
-  const payload = await readRawDatabase();
+  const payload = await readFromCloud();
   await writeLocalDatabaseOnly(payload);
 }
 

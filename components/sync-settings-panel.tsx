@@ -68,7 +68,7 @@ export function SyncSettingsPanel() {
         return;
       }
 
-      setMessage(enabled ? "Bulut senkronu açıldı. Değişiklikler anında paylaşılır." : "Bulut senkronu kapatıldı.");
+      setMessage(enabled ? "Bulut senkronu açıldı. Çalışma sırasında veri yerelde tutulur; program kapanırken buluta gönderilir." : "Bulut senkronu kapatıldı.");
       setTursoAuthToken("");
       if (data.status) {
         setState({
@@ -114,12 +114,40 @@ export function SyncSettingsPanel() {
     }
   }
 
+  async function handlePushNow() {
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "push" })
+      });
+
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(data.error ?? "Buluta gönderilemedi.");
+        return;
+      }
+
+      setMessage("Yerel veri buluta gönderildi.");
+    } catch {
+      setError("Bağlantı hatası.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Card className="mt-6">
       <div className="border-b border-slate-100 px-6 py-4">
         <h2 className="text-lg font-semibold text-slate-900">Bulut Senkronizasyonu</h2>
         <p className="mt-1 text-sm text-slate-500">
-          .exe ile web sürümü aynı Turso veritabanını kullanır. Kaydettiğiniz her değişiklik otomatik buluta gider.
+          Masaüstünde hızlı çalışmak için veri yerelde tutulur. Program kapanırken otomatik buluta
+          gönderilir; açılışta yerel ve bulut verisi karşılaştırılır.
         </p>
       </div>
 
@@ -183,20 +211,30 @@ export function SyncSettingsPanel() {
           </button>
 
           {enabled ? (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleSyncNow}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              Buluttan güncelle
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handlePushNow}
+                className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                Buluta gönder
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSyncNow}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Buluttan güncelle
+              </button>
+            </>
           ) : null}
         </div>
 
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-          Senkron acilirken yerel ve bulut verisi karsilastirilir; daha dolu olan korunur. Bos .exe
-          kurulumu buluttaki veriyi silmez. Emin degilseniz once webden kontrol edin.
+          Açılışta yerel ve bulut verisi karşılaştırılır; daha dolu olan korunur. Program kapanırken
+          yerel veri buluta gönderilir. Emin değilseniz önce webden kontrol edin.
         </div>
       </form>
     </Card>

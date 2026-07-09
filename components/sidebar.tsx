@@ -29,12 +29,14 @@ export function Sidebar({
   onNavigate,
   showLogout = false,
   cloudMode = false,
+  desktopSyncEnabled = false,
   mobileControlMode = false
 }: {
   office: OfficeProfile;
   onNavigate?: () => void;
   showLogout?: boolean;
   cloudMode?: boolean;
+  desktopSyncEnabled?: boolean;
   mobileControlMode?: boolean;
 }) {
   const pathname = usePathname();
@@ -75,7 +77,13 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-slate-100 px-6 py-4 text-xs text-slate-400">
-        <p>{cloudMode ? "Bulut veri · HTTPS · v2.0" : "Yerel veri · v2.0"}</p>
+        <p>
+          {desktopSyncEnabled
+            ? "Yerel veri · Kapatınca buluta · v2.0"
+            : cloudMode
+              ? "Bulut veri · HTTPS · v2.0"
+              : "Yerel veri · v2.0"}
+        </p>
         {showLogout ? (
           <button
             type="button"

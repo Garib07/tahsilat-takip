@@ -11,12 +11,14 @@ export function AppShell({
   office,
   children,
   showLogout = false,
-  cloudMode = false
+  cloudMode = false,
+  desktopSyncEnabled = false
 }: {
   office: OfficeProfile;
   children: ReactNode;
   showLogout?: boolean;
   cloudMode?: boolean;
+  desktopSyncEnabled?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -69,7 +71,7 @@ export function AppShell({
       </div>
 
       <div className="hidden shrink-0 md:flex">
-        <Sidebar office={office} showLogout={showLogout} cloudMode={cloudMode} />
+        <Sidebar office={office} showLogout={showLogout} cloudMode={cloudMode} desktopSyncEnabled={desktopSyncEnabled} />
       </div>
 
       {mobileOpen ? (
@@ -86,6 +88,7 @@ export function AppShell({
               onNavigate={closeMobileMenu}
               showLogout={showLogout}
               cloudMode={cloudMode}
+              desktopSyncEnabled={desktopSyncEnabled}
               mobileControlMode={nativeMobileApp}
             />
           </div>
