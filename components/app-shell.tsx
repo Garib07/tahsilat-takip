@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { useNativeMobileApp } from "@/lib/native-mobile-app";
 import { getSidebarOfficeDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile } from "@/lib/types";
 
@@ -20,7 +21,7 @@ export function AppShell({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileControlMode, setMobileControlMode] = useState(false);
+  const nativeMobileApp = useNativeMobileApp();
   const { title } = getSidebarOfficeDisplay(office);
 
   useEffect(() => {
@@ -35,28 +36,18 @@ export function AppShell({
   }, [cloudMode, router]);
 
   useEffect(() => {
-    function syncMobileMode() {
-      setMobileControlMode(window.matchMedia("(max-width: 767px)").matches);
-    }
-
-    syncMobileMode();
-    window.addEventListener("resize", syncMobileMode);
-    return () => window.removeEventListener("resize", syncMobileMode);
-  }, []);
-
-  useEffect(() => {
-    if (!cloudMode || !mobileControlMode) return;
+    if (!cloudMode || !nativeMobileApp) return;
     const timer = window.setInterval(() => router.refresh(), 15000);
     return () => window.clearInterval(timer);
-  }, [cloudMode, mobileControlMode, router]);
+  }, [cloudMode, nativeMobileApp, router]);
 
   useEffect(() => {
-    if (!mobileControlMode) return;
+    if (!nativeMobileApp) return;
     const blockedInMobile = pathname.startsWith("/charges");
     if (blockedInMobile) {
       router.replace("/customers");
     }
-  }, [mobileControlMode, pathname, router]);
+  }, [nativeMobileApp, pathname, router]);
 
   function closeMobileMenu() {
     setMobileOpen(false);
@@ -95,7 +86,7 @@ export function AppShell({
               onNavigate={closeMobileMenu}
               showLogout={showLogout}
               cloudMode={cloudMode}
-              mobileControlMode={mobileControlMode}
+              mobileControlMode={nativeMobileApp}
             />
           </div>
         </div>

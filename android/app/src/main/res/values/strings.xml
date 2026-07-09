@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tahsilat Takip Mobil</string>
+    <string name="title_activity_main">Tahsilat Takip Mobil</string>
+    <string name="package_name">com.tahsilat.takip.mobile</string>
+    <string name="custom_url_scheme">com.tahsilat.takip.mobile</string>
+</resources>

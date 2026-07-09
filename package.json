@@ -12,9 +12,16 @@
     "lint": "next lint",
     "electron:dev": "cross-env ELECTRON_DEV=1 electron electron/main.mjs",
     "electron:pack": "node scripts/electron-pack.cjs",
-    "db:migrate": "node scripts/migrate-to-turso.cjs"
+    "db:migrate": "node scripts/migrate-to-turso.cjs",
+    "mobile:add-android": "npx cap add android",
+    "mobile:sync": "npx cap sync android",
+    "mobile:open": "npx cap open android",
+    "mobile:apk:debug": "cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
     "@libsql/client": "^0.14.0",
     "@tailwindcss/postcss": "^4.3.1",
     "jose": "^6.0.11",
@@ -52,12 +59,16 @@
       {
         "from": ".next/standalone",
         "to": "standalone",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "electron/seed",
         "to": "seed",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -65,7 +76,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

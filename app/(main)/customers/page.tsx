@@ -36,10 +36,7 @@ export default async function CustomersPage() {
             >
               Raporlar
             </Link>
-            <div className="hidden md:block">
-              <CustomerCreateButton period={period} nextCode={nextCode} />
-            </div>
-            <CustomerCreateButton period={period} nextCode={nextCode} floatingOnMobile />
+            <CustomerCreateButton period={period} nextCode={nextCode} />
           </div>
         }
       />
