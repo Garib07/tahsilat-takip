@@ -84,6 +84,7 @@ export function CustomerCardForm({
   nextCode = "",
   customerId,
   initialForm,
+  compactMode = false,
   onClose
 }: {
   mode: "create" | "edit";
@@ -91,6 +92,7 @@ export function CustomerCardForm({
   nextCode?: string;
   customerId?: string;
   initialForm?: CustomerCardInput;
+  compactMode?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -149,23 +151,25 @@ export function CustomerCardForm({
             {isEdit ? `${period} dönemi cari kartı` : `${period} dönemine kaydedilecek`}
           </p>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="Kod">
-              <input
-                value={form.code}
-                onChange={(event) => setForm({ ...form, code: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
+          {!compactMode ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              <FormRow label="Kod">
+                <input
+                  value={form.code}
+                  onChange={(event) => setForm({ ...form, code: event.target.value })}
+                  className={inputClass}
+                />
+              </FormRow>
 
-            <FormRow label="Özel Kod">
-              <input
-                value={form.specialCode}
-                onChange={(event) => setForm({ ...form, specialCode: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
+              <FormRow label="Özel Kod">
+                <input
+                  value={form.specialCode}
+                  onChange={(event) => setForm({ ...form, specialCode: event.target.value })}
+                  className={inputClass}
+                />
+              </FormRow>
+            </div>
+          ) : null}
 
           <FormRow label="Unvan">
             <input
@@ -176,25 +180,7 @@ export function CustomerCardForm({
             />
           </FormRow>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="Yetkili">
-              <input
-                value={form.authorizedPerson}
-                onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-
-            <FormRow label="Gsm">
-              <input
-                value={form.mobile}
-                onChange={(event) => setForm({ ...form, mobile: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
+          {compactMode ? (
             <FormRow label="Telefon">
               <input
                 value={form.phone}
@@ -202,78 +188,108 @@ export function CustomerCardForm({
                 className={inputClass}
               />
             </FormRow>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormRow label="Yetkili">
+                  <input
+                    value={form.authorizedPerson}
+                    onChange={(event) => setForm({ ...form, authorizedPerson: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
 
-            <FormRow label="Faks">
-              <input
-                value={form.fax}
-                onChange={(event) => setForm({ ...form, fax: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
+                <FormRow label="Gsm">
+                  <input
+                    value={form.mobile}
+                    onChange={(event) => setForm({ ...form, mobile: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+              </div>
 
-          <FormRow label="Adres">
-            <input
-              value={form.address}
-              onChange={(event) => setForm({ ...form, address: event.target.value })}
-              className={inputClass}
-            />
-          </FormRow>
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormRow label="Telefon">
+                  <input
+                    value={form.phone}
+                    onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="İl">
-              <input
-                value={form.city}
-                onChange={(event) => setForm({ ...form, city: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
+                <FormRow label="Faks">
+                  <input
+                    value={form.fax}
+                    onChange={(event) => setForm({ ...form, fax: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+              </div>
 
-            <FormRow label="İlçe">
-              <input
-                value={form.district}
-                onChange={(event) => setForm({ ...form, district: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
+              <FormRow label="Adres">
+                <input
+                  value={form.address}
+                  onChange={(event) => setForm({ ...form, address: event.target.value })}
+                  className={inputClass}
+                />
+              </FormRow>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="V. Daire">
-              <input
-                value={form.taxOffice}
-                onChange={(event) => setForm({ ...form, taxOffice: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormRow label="İl">
+                  <input
+                    value={form.city}
+                    onChange={(event) => setForm({ ...form, city: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
 
-            <FormRow label="TC - V.No">
-              <input
-                value={form.taxNumber}
-                onChange={(event) => setForm({ ...form, taxNumber: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
+                <FormRow label="İlçe">
+                  <input
+                    value={form.district}
+                    onChange={(event) => setForm({ ...form, district: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+              </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormRow label="E-Posta">
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormRow label="V. Daire">
+                  <input
+                    value={form.taxOffice}
+                    onChange={(event) => setForm({ ...form, taxOffice: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
 
-            <FormRow label="Web">
-              <input
-                value={form.website}
-                onChange={(event) => setForm({ ...form, website: event.target.value })}
-                className={inputClass}
-              />
-            </FormRow>
-          </div>
+                <FormRow label="TC - V.No">
+                  <input
+                    value={form.taxNumber}
+                    onChange={(event) => setForm({ ...form, taxNumber: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormRow label="E-Posta">
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => setForm({ ...form, email: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+
+                <FormRow label="Web">
+                  <input
+                    value={form.website}
+                    onChange={(event) => setForm({ ...form, website: event.target.value })}
+                    className={inputClass}
+                  />
+                </FormRow>
+              </div>
+            </>
+          )}
 
           <FormRow label="Aylık Ücret">
             <input
@@ -291,94 +307,98 @@ export function CustomerCardForm({
             />
           </FormRow>
 
-          <div className="mt-2 border-t border-slate-100 pt-4">
-            <p className="mb-3 text-sm font-medium text-slate-700">Alacak takibi</p>
-            <FormRow label="Durum">
-              <select
-                value={form.receivableStatus}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    receivableStatus: event.target.value === "doubtful" ? "doubtful" : "normal"
-                  })
-                }
-                className={inputClass}
-              >
-                <option value="normal">Normal</option>
-                <option value="doubtful">Şüpheli alacak</option>
-              </select>
-            </FormRow>
-
-            {form.receivableStatus === "doubtful" ? (
-              <>
-                <FormRow label="Şüpheli tutar" className="mt-3">
-                  <div>
-                    <input
-                      inputMode="decimal"
-                      value={form.doubtfulAmount}
-                      onChange={(event) =>
-                        setForm({
-                          ...form,
-                          doubtfulAmount: formatAmountInput(event.target.value)
-                        })
-                      }
-                      onBlur={() =>
-                        setForm({
-                          ...form,
-                          doubtfulAmount: form.doubtfulAmount.trim()
-                            ? formatAmountWithCents(form.doubtfulAmount)
-                            : ""
-                        })
-                      }
-                      className={inputClass}
-                      placeholder="Boş bırakılırsa tüm pozitif bakiye"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">
-                      Kısmi şüpheli alacak için tutar girin; boşsa carinin tüm borcu şüpheli sayılır.
-                    </p>
-                  </div>
+          {!compactMode ? (
+            <>
+              <div className="mt-2 border-t border-slate-100 pt-4">
+                <p className="mb-3 text-sm font-medium text-slate-700">Alacak takibi</p>
+                <FormRow label="Durum">
+                  <select
+                    value={form.receivableStatus}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        receivableStatus: event.target.value === "doubtful" ? "doubtful" : "normal"
+                      })
+                    }
+                    className={inputClass}
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="doubtful">Şüpheli alacak</option>
+                  </select>
                 </FormRow>
-                <FormRow label="Not" className="mt-3">
-                  <textarea
-                    value={form.doubtfulNote}
-                    onChange={(event) => setForm({ ...form, doubtfulNote: event.target.value })}
-                    className={`${inputClass} min-h-[72px] resize-y`}
-                    placeholder="Şüpheli alacak gerekçesi (isteğe bağlı)"
+
+                {form.receivableStatus === "doubtful" ? (
+                  <>
+                    <FormRow label="Şüpheli tutar" className="mt-3">
+                      <div>
+                        <input
+                          inputMode="decimal"
+                          value={form.doubtfulAmount}
+                          onChange={(event) =>
+                            setForm({
+                              ...form,
+                              doubtfulAmount: formatAmountInput(event.target.value)
+                            })
+                          }
+                          onBlur={() =>
+                            setForm({
+                              ...form,
+                              doubtfulAmount: form.doubtfulAmount.trim()
+                                ? formatAmountWithCents(form.doubtfulAmount)
+                                : ""
+                            })
+                          }
+                          className={inputClass}
+                          placeholder="Boş bırakılırsa tüm pozitif bakiye"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">
+                          Kısmi şüpheli alacak için tutar girin; boşsa carinin tüm borcu şüpheli sayılır.
+                        </p>
+                      </div>
+                    </FormRow>
+                    <FormRow label="Not" className="mt-3">
+                      <textarea
+                        value={form.doubtfulNote}
+                        onChange={(event) => setForm({ ...form, doubtfulNote: event.target.value })}
+                        className={`${inputClass} min-h-[72px] resize-y`}
+                        placeholder="Şüpheli alacak gerekçesi (isteğe bağlı)"
+                      />
+                    </FormRow>
+                  </>
+                ) : null}
+              </div>
+
+              <FormRow label="Açılış">
+                <div>
+                  <input
+                    type="date"
+                    value={form.openedAt}
+                    onChange={(event) => setForm({ ...form, openedAt: event.target.value })}
+                    className={inputClass}
                   />
-                </FormRow>
-              </>
-            ) : null}
-          </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Sözleşme başlangıç veya açılış tarihi. Girilirse bu tarihten önceki aylar için toplu
+                    tahakkuk oluşturulmaz.
+                  </p>
+                </div>
+              </FormRow>
 
-          <FormRow label="Açılış">
-            <div>
-              <input
-                type="date"
-                value={form.openedAt}
-                onChange={(event) => setForm({ ...form, openedAt: event.target.value })}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Sözleşme başlangıç veya açılış tarihi. Girilirse bu tarihten önceki aylar için toplu
-                tahakkuk oluşturulmaz.
-              </p>
-            </div>
-          </FormRow>
-
-          <FormRow label="Kapanış">
-            <div>
-              <input
-                type="date"
-                value={form.closedAt}
-                onChange={(event) => setForm({ ...form, closedAt: event.target.value })}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Sözleşme bitiş veya kapanış tarihi. Girilirse bu tarihten sonraki aylar için toplu
-                tahakkuk oluşturulmaz.
-              </p>
-            </div>
-          </FormRow>
+              <FormRow label="Kapanış">
+                <div>
+                  <input
+                    type="date"
+                    value={form.closedAt}
+                    onChange={(event) => setForm({ ...form, closedAt: event.target.value })}
+                    className={inputClass}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Sözleşme bitiş veya kapanış tarihi. Girilirse bu tarihten sonraki aylar için toplu
+                    tahakkuk oluşturulmaz.
+                  </p>
+                </div>
+              </FormRow>
+            </>
+          ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
             <button

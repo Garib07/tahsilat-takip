@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { getSidebarOfficeDisplay } from "@/lib/reports/office-header-display";
 import { OfficeProfile } from "@/lib/types";
@@ -18,7 +18,9 @@ export function AppShell({
   cloudMode?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileControlMode, setMobileControlMode] = useState(false);
   const { title } = getSidebarOfficeDisplay(office);
 
   useEffect(() => {
@@ -31,6 +33,30 @@ export function AppShell({
     window.addEventListener("focus", refreshOnFocus);
     return () => window.removeEventListener("focus", refreshOnFocus);
   }, [cloudMode, router]);
+
+  useEffect(() => {
+    function syncMobileMode() {
+      setMobileControlMode(window.matchMedia("(max-width: 767px)").matches);
+    }
+
+    syncMobileMode();
+    window.addEventListener("resize", syncMobileMode);
+    return () => window.removeEventListener("resize", syncMobileMode);
+  }, []);
+
+  useEffect(() => {
+    if (!cloudMode || !mobileControlMode) return;
+    const timer = window.setInterval(() => router.refresh(), 15000);
+    return () => window.clearInterval(timer);
+  }, [cloudMode, mobileControlMode, router]);
+
+  useEffect(() => {
+    if (!mobileControlMode) return;
+    const blockedInMobile = pathname.startsWith("/charges");
+    if (blockedInMobile) {
+      router.replace("/customers");
+    }
+  }, [mobileControlMode, pathname, router]);
 
   function closeMobileMenu() {
     setMobileOpen(false);
@@ -64,7 +90,13 @@ export function AppShell({
             onClick={closeMobileMenu}
           />
           <div className="absolute left-0 top-0 h-full w-[min(100%,18rem)] shadow-xl">
-            <Sidebar office={office} onNavigate={closeMobileMenu} showLogout={showLogout} cloudMode={cloudMode} />
+            <Sidebar
+              office={office}
+              onNavigate={closeMobileMenu}
+              showLogout={showLogout}
+              cloudMode={cloudMode}
+              mobileControlMode={mobileControlMode}
+            />
           </div>
         </div>
       ) : null}

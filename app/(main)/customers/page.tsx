@@ -32,11 +32,14 @@ export default async function CustomersPage() {
             <PeriodBadge period={period} />
             <Link
               href="/reports"
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="hidden rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 md:inline-flex"
             >
               Raporlar
             </Link>
-            <CustomerCreateButton period={period} nextCode={nextCode} />
+            <div className="hidden md:block">
+              <CustomerCreateButton period={period} nextCode={nextCode} />
+            </div>
+            <CustomerCreateButton period={period} nextCode={nextCode} floatingOnMobile />
           </div>
         }
       />

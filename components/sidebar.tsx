@@ -15,6 +15,10 @@ const menuItems = [
   { href: "/settings", label: "Firma Yönetimi", icon: "⚙" }
 ];
 
+const mobileControlMenuItems = menuItems.filter(
+  (item) => item.href === "/" || item.href === "/customers" || item.href === "/reports"
+);
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname.startsWith(href);
@@ -24,15 +28,18 @@ export function Sidebar({
   office,
   onNavigate,
   showLogout = false,
-  cloudMode = false
+  cloudMode = false,
+  mobileControlMode = false
 }: {
   office: OfficeProfile;
   onNavigate?: () => void;
   showLogout?: boolean;
   cloudMode?: boolean;
+  mobileControlMode?: boolean;
 }) {
   const pathname = usePathname();
   const { title, subtitle } = getSidebarOfficeDisplay(office);
+  const visibleMenuItems = mobileControlMode ? mobileControlMenuItems : menuItems;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -47,7 +54,7 @@ export function Sidebar({
         <PeriodSwitcher period={office.period} />
       </div>
       <nav className="flex-1 space-y-1 p-4">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
