@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2017",
     "lib": [
       "dom",
       "dom.iterable",
@@ -8,6 +8,7 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -37,6 +38,10 @@
   ],
   "exclude": [
     "node_modules",
-    "dist-electron"
+    "dist-electron",
+    "dist-electron.old-*",
+    ".open-next",
+    "cloudflare-worker.ts",
+    "android"
   ]
 }

@@ -25,10 +25,10 @@ export function verifyCredentials(username: string, password: string) {
     return false;
   }
 
-  return (
-    username.trim() === process.env.AUTH_USERNAME &&
-    password === process.env.AUTH_PASSWORD
-  );
+  const expectedUser = String(process.env.AUTH_USERNAME ?? "").trim();
+  const expectedPass = String(process.env.AUTH_PASSWORD ?? "").trim();
+
+  return username.trim() === expectedUser && password === expectedPass;
 }
 
 export async function createSessionToken(username: string) {

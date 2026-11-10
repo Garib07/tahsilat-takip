@@ -1,7 +1,11 @@
 .next
+.open-next
 node_modules
 dist-electron
+dist-electron.old-*
 data/*.json
 data/*.tmp
 *.tsbuildinfo
 .env*
+.dev.vars
+.wrangler

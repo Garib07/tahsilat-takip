@@ -1,9 +1,10 @@
 import { Card } from "@/components/ui";
+import { PUBLIC_APP_URL } from "@/lib/public-app-url";
 import { listDatabaseBackups } from "@/lib/storage";
 
 export async function CloudInfoPanel() {
   const backups = await listDatabaseBackups(5);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || PUBLIC_APP_URL;
 
   return (
     <Card className="mt-6">
@@ -27,7 +28,7 @@ export async function CloudInfoPanel() {
           </div>
         ) : (
           <p className="text-slate-500">
-            Vercel ortam değişkenlerine NEXT_PUBLIC_APP_URL ekleyin (ör. https://tahsilat.vercel.app).
+            Cloudflare Worker yayında değil veya NEXT_PUBLIC_APP_URL tanımlı değil.
           </p>
         )}
 

@@ -26,12 +26,12 @@ export function getSyncConfigPath() {
 
 export function readSyncConfigSync(): SyncConfig | null {
   const filePath = getSyncConfigPath();
-  if (!existsSync(filePath)) {
+  if (!existsSync(/*turbopackIgnore: true*/ filePath)) {
     return null;
   }
 
   try {
-    const config = JSON.parse(readFileSync(filePath, "utf8")) as Partial<SyncConfig>;
+    const config = JSON.parse(readFileSync(/*turbopackIgnore: true*/ filePath, "utf8")) as Partial<SyncConfig>;
     if (!config.tursoDatabaseUrl || !config.tursoAuthToken) {
       return null;
     }
@@ -51,7 +51,7 @@ export function readSyncConfigSync(): SyncConfig | null {
 export async function readSyncConfig(): Promise<SyncConfig | null> {
   const filePath = getSyncConfigPath();
   try {
-    const config = JSON.parse(await readFile(filePath, "utf8")) as Partial<SyncConfig>;
+    const config = JSON.parse(await readFile(/*turbopackIgnore: true*/ filePath, "utf8")) as Partial<SyncConfig>;
     if (!config.tursoDatabaseUrl || !config.tursoAuthToken) {
       return null;
     }

@@ -24,7 +24,7 @@ function postSyncAction(action) {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(data)
         },
-        timeout: 30000
+        timeout: 8000
       },
       (response) => {
         response.resume();
@@ -129,6 +129,57 @@ function buildServerEnv(dataDir) {
   };
 }
 
+function killStaleServerOnPort(port) {
+  if (process.platform !== "win32") return;
+
+  try {
+    const result = spawnSync("netstat", ["-ano"], { encoding: "utf8" });
+    const pids = new Set();
+
+    for (const line of result.stdout.split("\n")) {
+      if (!line.includes("LISTENING") || !line.includes(`:${port}`)) continue;
+      const pid = line.trim().split(/\s+/).pop();
+      if (pid && /^\d+$/.test(pid) && pid !== "0") {
+        pids.add(pid);
+      }
+    }
+
+    for (const pid of pids) {
+      spawnSync("taskkill", ["/pid", pid, "/f", "/t"], { stdio: "ignore" });
+    }
+  } catch {
+    // Portta eski surec yok.
+  }
+}
+
+function stopServer() {
+  if (!serverProcess || serverProcess.killed) return;
+
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/pid", String(serverProcess.pid), "/f", "/t"], { stdio: "ignore" });
+  } else {
+    serverProcess.kill("SIGTERM");
+  }
+
+  serverProcess = null;
+}
+
+async function shutdownWithOptionalSync(waitForSync) {
+  if (quitting) return;
+  quitting = true;
+
+  if (waitForSync) {
+    await Promise.race([
+      postSyncAction("shutdown"),
+      new Promise((resolve) => setTimeout(resolve, 5000))
+    ]);
+  } else {
+    void postSyncAction("shutdown");
+  }
+
+  stopServer();
+}
+
 function startStandaloneServer(dataDir) {
   const standaloneDir = app.isPackaged
     ? path.join(process.resourcesPath, "standalone")
@@ -173,6 +224,7 @@ function startDevServer() {
 
 async function startBackend() {
   const dataDir = ensureDataFile();
+  killStaleServerOnPort(SERVER_PORT);
 
   if (isDev) {
     startDevServer();
@@ -207,21 +259,18 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.on("close", (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    void shutdownWithOptionalSync(true).then(() => {
+      mainWindow?.destroy();
+      app.quit();
+    });
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-}
-
-function stopServer() {
-  if (!serverProcess || serverProcess.killed) return;
-
-  if (process.platform === "win32") {
-    spawnSync("taskkill", ["/pid", String(serverProcess.pid), "/f", "/t"], { stdio: "ignore" });
-  } else {
-    serverProcess.kill("SIGTERM");
-  }
-
-  serverProcess = null;
 }
 
 const gotLock = app.requestSingleInstanceLock();
@@ -251,20 +300,8 @@ if (!gotLock) {
     }
   });
 
-  app.on("before-quit", async (event) => {
-    if (quitting) return;
-
-    event.preventDefault();
-    quitting = true;
-
-    try {
-      await postSyncAction("shutdown");
-    } catch (error) {
-      console.error("Buluta gonderilemedi:", error);
-    }
-
+  app.on("before-quit", () => {
     stopServer();
-    app.quit();
   });
 
   app.on("activate", () => {

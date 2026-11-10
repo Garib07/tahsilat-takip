@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import { createClient, type Client } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client/web";
 import { isDesktopApp, readSyncConfigSync } from "./sync-config";
 
 const emptyPayload = JSON.stringify({

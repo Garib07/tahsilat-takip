@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Tahsilat Takip Mobil",
   webDir: "mobile-web",
   server: {
-    url: "https://tahsilat-takip-4qrm.vercel.app",
+    url: "https://tahsilat-takip.aaydin07.workers.dev",
     cleartext: false
   },
   android: {

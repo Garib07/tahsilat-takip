@@ -5,7 +5,7 @@ cd /d "%~dp0"
 
 set "GIT_NAME=Garib07"
 set "GIT_EMAIL=garib07@users.noreply.github.com"
-set "SITE=https://tahsilat-takip-4qrm.vercel.app"
+set "SITE=https://tahsilat-takip.aaydin07.workers.dev"
 
 echo.
 echo  ============================================
@@ -13,7 +13,7 @@ echo   Tahsilat Takip - Degisiklikleri Uygula
 echo  ============================================
 echo.
 echo  Bu dosya kod degisikliklerini otomatik uygular:
-echo    - Bulut (web/telefon) : GitHub -^> Vercel
+echo    - Bulut (web/telefon) : Cloudflare Workers
 echo    - Masaustu (.exe)     : istege bagli yeniden paketleme
 echo.
 
@@ -21,10 +21,10 @@ REM --- Degisiklik var mi? ---
 git status --porcelain 2>nul | findstr /r "." >nul
 if errorlevel 1 (
   echo  Kaydedilecek kod degisikligi bulunamadi.
-  goto ask_exe
+  goto ask_cloud
 )
 
-echo  [1/2] Buluta gonderiliyor...
+echo  [1/3] GitHub'a kaydediliyor...
 echo.
 
 set /p COMMIT_MSG=Kisa aciklama ^(Enter = Guncelleme^): 
@@ -50,9 +50,30 @@ if errorlevel 1 (
 )
 
 echo.
-echo  TAMAM - Bulut guncelleniyor.
-echo  2-3 dakika sonra siteyi acin: %SITE%
-echo  (Vercel otomatik deploy eder, baska bir sey yapmaniz gerekmez)
+echo  TAMAM - Kod GitHub'a gonderildi.
+echo.
+
+:ask_cloud
+set "DEPLOY_CF=E"
+set /p DEPLOY_CF=Cloudflare'e deploy edilsin mi? (E/H) [E]: 
+if /i "%DEPLOY_CF%"=="H" goto ask_exe
+if /i "%DEPLOY_CF%"=="HAYIR" goto ask_exe
+
+echo.
+echo  [2/3] Cloudflare Workers'a yayinlaniyor...
+echo.
+
+call npm.cmd run deploy
+if errorlevel 1 (
+  echo.
+  echo  HATA: Cloudflare deploy basarisiz.
+  echo  Once: npx wrangler login
+  pause
+  exit /b 1
+)
+
+echo.
+echo  TAMAM - Site: %SITE%
 echo.
 
 :ask_exe
@@ -64,14 +85,15 @@ if /i "%BUILD_EXE%"=="EVET" goto build_exe
 echo.
 echo  Islem bitti.
 echo  - Web/telefon: %SITE%
-echo  - Masaustu: mevcut .exe ayni kalir (senkron aciksa veri yine buluttan gelir)
+echo  - Masaustu: mevcut .exe ayni kalir
+echo    (Firma Yonetimi - Web adresi: %SITE%)
 echo.
 pause
 exit /b 0
 
 :build_exe
 echo.
-echo  [2/2] Masaustu kurulum dosyasi olusturuluyor...
+echo  [3/3] Masaustu kurulum dosyasi olusturuluyor...
 echo  (3-5 dakika surebilir)
 echo.
 
@@ -88,7 +110,7 @@ echo  TAMAM - Kurulum dosyasi hazir:
 echo  dist-electron\Tahsilat-Takip-Setup-2.0.0.exe
 echo.
 echo  Kurarken "Sadece benim icin" secin.
-echo  Kurulumdan sonra Firma Yonetimi - Bulut Senkronizasyonu acik kalsin.
+echo  Kurulumdan sonra Firma Yonetimi - Web adresi: %SITE%
 echo.
 pause
 exit /b 0

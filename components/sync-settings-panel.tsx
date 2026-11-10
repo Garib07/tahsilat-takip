@@ -19,7 +19,7 @@ export function SyncSettingsPanel() {
   const [enabled, setEnabled] = useState(false);
   const [tursoDatabaseUrl, setTursoDatabaseUrl] = useState("");
   const [tursoAuthToken, setTursoAuthToken] = useState("");
-  const [appUrl, setAppUrl] = useState("https://tahsilat-takip-4qrm.vercel.app");
+  const [appUrl, setAppUrl] = useState("https://tahsilat-takip.aaydin07.workers.dev");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export function SyncSettingsPanel() {
         if (data.desktop) {
           setEnabled(data.enabled);
           setTursoDatabaseUrl(data.tursoDatabaseUrl ?? "");
-          setAppUrl(data.appUrl || "https://tahsilat-takip-4qrm.vercel.app");
+          setAppUrl(data.appUrl || "https://tahsilat-takip.aaydin07.workers.dev");
         }
       })
       .catch(() => setState({ desktop: false, enabled: false, appUrl: "", updatedAt: "", tursoDatabaseUrl: "", hasToken: false }));
